@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#6366f1">
+    <title>生活管理面板</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 待办清单 -->
+        <div class="page" id="page-todos">
+            <div class="header">
+                <h1>待办清单</h1>
+                <div class="progress-bar"><div class="progress-fill" id="todo-progress"></div></div>
+                <span class="progress-text" id="todo-progress-text">0 / 0</span>
+            </div>
+            <div class="filter-tabs" id="todo-filters">
+                <button class="filter-tab active" data-filter="all">全部</button>
+                <button class="filter-tab" data-filter="active">待完成</button>
+                <button class="filter-tab" data-filter="done">已完成</button>
+            </div>
+            <div class="list" id="todo-list"></div>
+            <div class="add-bar">
+                <input type="text" id="todo-input" placeholder="添加待办事项..." />
+                <select id="todo-category"><option>工作</option><option>生活</option><option>学习</option><option>其他</option></select>
+                <select id="todo-priority"><option value="low">低</option><option value="mid" selected>中</option><option value="high">高</option></select>
+                <button id="todo-add-btn">+</button>
+            </div>
+        </div>
+
+        <!-- 计时器 -->
+        <div class="page hidden" id="page-timers">
+            <div class="header"><h1>计时器</h1></div>
+            <div class="filter-tabs" id="timer-filters">
+                <button class="filter-tab active" data-filter="all">全部</button>
+                <button class="filter-tab" data-filter="countdown">倒计时</button>
+                <button class="filter-tab" data-filter="countup">正向计时</button>
+            </div>
+            <div class="list" id="timer-list"></div>
+            <div class="add-bar">
+                <input type="text" id="timer-input" placeholder="标题（如：考试）" />
+                <input type="datetime-local" id="timer-date" />
+                <select id="timer-direction"><option value="countdown">倒计时</option><option value="countup">正向</option></select>
+                <input type="color" id="timer-color" value="#6366f1" />
+                <button id="timer-add-btn">+</button>
+            </div>
+        </div>
+
+        <!-- 目标 -->
+        <div class="page hidden" id="page-goals">
+            <div class="header"><h1>目标管理</h1></div>
+            <div class="list" id="goal-list"></div>
+            <div class="add-bar">
+                <input type="text" id="goal-input" placeholder="目标标题" />
+                <input type="text" id="goal-desc" placeholder="描述（可选）" />
+                <input type="date" id="goal-deadline" />
+                <button id="goal-add-btn">+</button>
+            </div>
+        </div>
+
+        <!-- 倒数日 -->
+        <div class="page hidden" id="page-countdowns">
+            <div class="header"><h1>倒数日</h1></div>
+            <div class="list" id="countdown-list"></div>
+            <div class="add-bar">
+                <input type="text" id="cd-input" placeholder="事件名称" />
+                <input type="date" id="cd-date" />
+                <select id="cd-mode"><option value="until">距今还有</option><option value="since">已经过了</option></select>
+                <input type="text" id="cd-emoji" placeholder="emoji" value="📅" style="width:50px" />
+                <button id="cd-add-btn">+</button>
+            </div>
+        </div>
+
+        <!-- 统计 -->
+        <div class="page hidden" id="page-stats">
+            <div class="header"><h1>统计</h1></div>
+            <div class="filter-tabs" id="stats-filters">
+                <button class="filter-tab active" data-stats-range="day">日</button>
+                <button class="filter-tab" data-stats-range="week">周</button>
+                <button class="filter-tab" data-stats-range="month">月</button>
+                <button class="filter-tab" data-stats-range="year">年</button>
+            </div>
+            <div class="stats-cards" id="stats-cards"></div>
+            <div class="stats-section" id="stats-category"></div>
+            <div class="stats-section" id="stats-priority"></div>
+            <div class="stats-section" id="stats-goals"></div>
+            <div class="stats-section" id="stats-diaries"></div>
+        </div>
+
+        <!-- 日记 -->
+        <div class="page hidden" id="page-diary">
+            <div class="header"><h1>日记</h1></div>
+            <div class="list" id="diary-list"></div>
+            <div class="add-bar">
+                <input type="text" id="diary-title" placeholder="标题" />
+                <input type="date" id="diary-date" />
+                <select id="diary-mood">
+                    <option>😊</option><option>😄</option><option>😢</option><option>😡</option>
+                    <option>😨</option><option>😴</option><option>🤔</option><option>😎</option>
+                    <option>🥳</option><option>😭</option><option>🤗</option><option>😐</option>
+                </select>
+                <button id="diary-add-btn">+</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 日记编辑弹窗 -->
+    <div class="modal hidden" id="diary-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="diary-modal-title">写日记</h2>
+                <button id="diary-modal-close">✕</button>
+            </div>
+            <input type="text" id="diary-edit-title" placeholder="标题" class="modal-input" />
+            <input type="date" id="diary-edit-date" class="modal-input" />
+            <select id="diary-edit-mood" class="modal-input">
+                <option>😊</option><option>😄</option><option>😢</option><option>😡</option>
+                <option>😨</option><option>😴</option><option>🤔</option><option>😎</option>
+                <option>🥳</option><option>😭</option><option>🤗</option><option>😐</option>
+            </select>
+            <textarea id="diary-edit-content" placeholder="今天发生了什么..." class="modal-textarea"></textarea>
+            <button id="diary-save-btn" class="modal-save-btn">保存</button>
+        </div>
+    </div>
+
+    <!-- 底部导航 -->
+    <nav class="bottom-nav">
+        <button class="nav-btn active" data-page="todos"><span class="nav-icon">✓</span><span>待办</span></button>
+        <button class="nav-btn" data-page="timers"><span class="nav-icon">⏱</span><span>计时</span></button>
+        <button class="nav-btn" data-page="goals"><span class="nav-icon">🎯</span><span>目标</span></button>
+        <button class="nav-btn" data-page="countdowns"><span class="nav-icon">📅</span><span>倒数日</span></button>
+        <button class="nav-btn" data-page="stats"><span class="nav-icon">📊</span><span>统计</span></button>
+        <button class="nav-btn" data-page="diary"><span class="nav-icon">📖</span><span>日记</span></button>
+    </nav>
+
+    <script src="app.js"></script>
+</body>
+</html>
