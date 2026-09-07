@@ -1,33 +1,37 @@
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
+const mongoose = require('mongoose');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DATA_FILE = path.join(__dirname, 'data.json');
+const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/life-dashboard';
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-function loadData() {
-    try {
-        if (fs.existsSync(DATA_FILE)) {
-            return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-        }
-    } catch (e) { }
-    return { todos: [], timers: [], goals: [], countdowns: [], diaries: [] };
-}
+mongoose.connect(MONGO_URL).then(() => console.log('MongoDB connected')).catch(e => console.error('MongoDB error:', e));
 
-function saveData(data) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-}
-
-app.get('/api/data', (req, res) => {
-    res.json(loadData());
+const dataSchema = new mongoose.Schema({
+    key: { type: String, default: 'main' },
+    todos: { type: Array, default: [] },
+    timers: { type: Array, default: [] },
+    goals: { type: Array, default: [] },
+    countdowns: { type: Array, default: [] },
+    diaries: { type: Array, default: [] }
 });
 
-app.post('/api/data', (req, res) => {
-    saveData(req.body);
+const Data = mongoose.model('Data', dataSchema);
+
+app.get('/api/data', async (req, res) => {
+    let d = await Data.findOne({ key: 'main' });
+    if (!d) {
+        d = await Data.create({ key: 'main' });
+    }
+    res.json({ todos: d.todos, timers: d.timers, goals: d.goals, countdowns: d.countdowns, diaries: d.diaries });
+});
+
+app.post('/api/data', async (req, res) => {
+    await Data.findOneAndUpdate({ key: 'main' }, req.body, { upsert: true });
     res.json({ ok: true });
 });
 
