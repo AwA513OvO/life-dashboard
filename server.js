@@ -144,6 +144,16 @@ app.post('/api/vault/verify', auth, async (req, res) => {
     res.json({ ok: true });
 });
 
+// Reset vault - clears vault password AND all encrypted content
+app.post('/api/vault/reset', auth, async (req, res) => {
+    const user = await User.findById(req.userId);
+    if (!user.vaultPassword) return res.status(400).json({ error: 'Vault not set' });
+    
+    await User.findByIdAndUpdate(req.userId, { vaultPassword: null });
+    await Data.findOneAndUpdate({ userId: req.userId }, { vault: [] });
+    res.json({ ok: true });
+});
+
 // ====== Data Routes ======
 app.get('/api/data', auth, async (req, res) => {
     let d = await Data.findOne({ userId: req.userId });
