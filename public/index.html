@@ -190,6 +190,7 @@
                 <input type="password" id="vault-unlock-password" placeholder="保密柜密码" class="auth-input" />
                 <button id="vault-unlock-btn" class="auth-btn">解锁</button>
                 <p id="vault-unlock-error" class="auth-error"></p>
+                <button id="vault-forgot-link" class="forgot-link">忘记保密柜密码？</button>
             </div>
             <!-- 保密柜已解锁 -->
             <div id="vault-unlocked" class="vault-section hidden">
@@ -216,6 +217,31 @@
             <div class="stats-section">
                 <h3>用户列表</h3>
                 <div id="admin-user-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 保密柜重置确认弹窗 -->
+    <div class="modal hidden" id="vault-reset-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚠️ 重置保密柜</h2>
+                <button id="vault-reset-close">✕</button>
+            </div>
+            <div class="vault-reset-warning">
+                <p style="font-size:15px;line-height:1.8">
+                    重置保密柜密码将：<br>
+                    1. <span style="color:var(--danger);font-weight:700">永久删除</span>所有已加密的保密柜内容<br>
+                    2. 清除当前保密柜密码<br>
+                    3. 你可以设置新的保密柜密码<br><br>
+                    <span style="color:var(--warning);font-weight:700">此操作不可撤销，旧内容无法恢复！</span>
+                </p>
+            </div>
+            <input type="password" id="vault-reset-confirm-input" placeholder="输入登录密码以确认操作" class="modal-input" />
+            <p id="vault-reset-error" class="auth-error"></p>
+            <div class="modal-actions">
+                <button id="vault-reset-cancel" class="modal-del-btn">取消</button>
+                <button id="vault-reset-confirm-btn" class="modal-save-btn" style="background:var(--danger)">确认重置保密柜</button>
             </div>
         </div>
     </div>
