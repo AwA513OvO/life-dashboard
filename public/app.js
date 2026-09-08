@@ -407,6 +407,43 @@ async function unlockVault() {
     } catch(e) { document.getElementById('vault-unlock-error').textContent = '密码错误'; }
 }
 function lockVault() { vaultUnlocked = false; vaultKey = ''; renderVaultState(); }
+
+// ====== Vault Reset ======
+document.getElementById('vault-forgot-link').addEventListener('click', () => {
+    document.getElementById('vault-reset-modal').classList.remove('hidden');
+    document.getElementById('vault-reset-confirm-input').value = '';
+    document.getElementById('vault-reset-error').textContent = '';
+});
+document.getElementById('vault-reset-close').addEventListener('click', () => document.getElementById('vault-reset-modal').classList.add('hidden'));
+document.getElementById('vault-reset-cancel').addEventListener('click', () => document.getElementById('vault-reset-modal').classList.add('hidden'));
+
+document.getElementById('vault-reset-confirm-btn').addEventListener('click', async () => {
+    const loginPassword = document.getElementById('vault-reset-confirm-input').value;
+    if (!loginPassword) { document.getElementById('vault-reset-error').textContent = '请输入登录密码以确认'; return; }
+    
+    const me = await api('/api/me');
+    try {
+        const verifyRes = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: me.username, password: loginPassword })
+        });
+        const verifyData = await verifyRes.json();
+        if (verifyData.error) { document.getElementById('vault-reset-error').textContent = '登录密码错误'; return; }
+    } catch(e) { document.getElementById('vault-reset-error').textContent = '验证失败'; return; }
+    
+    try {
+        const res = await api('/api/vault/reset', 'POST', {});
+        if (res.error) { document.getElementById('vault-reset-error').textContent = res.error; return; }
+        document.getElementById('vault-reset-modal').classList.add('hidden');
+        vaultUnlocked = false;
+        vaultKey = '';
+        await loadData();
+        renderVaultState();
+        alert('保密柜已重置，所有加密内容已清除。请设置新的保密柜密码。');
+    } catch(e) { document.getElementById('vault-reset-error').textContent = '重置失败'; }
+});
+
 function addVaultItem() {
     const type = document.getElementById('vault-type').value;
     const title = document.getElementById('vault-title').value.trim();
