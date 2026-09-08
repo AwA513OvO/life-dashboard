@@ -10,6 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
 </head>
 <body>
+    <!-- 登录/注册页 -->
     <div id="auth-page" class="auth-page">
         <div class="auth-card">
             <h1>生活管理面板</h1>
@@ -20,17 +21,62 @@
             </div>
             <input type="text" id="auth-username" placeholder="用户名" class="auth-input" />
             <input type="password" id="auth-password" placeholder="密码" class="auth-input" />
+            <!-- 密保问题（仅注册时显示） -->
+            <div id="security-fields" class="hidden">
+                <select id="auth-security-question" class="auth-input">
+                    <option value="">选择密保问题</option>
+                    <option value="你的宠物叫什么名字？">你的宠物叫什么名字？</option>
+                    <option value="你最喜欢的食物是什么？">你最喜欢的食物是什么？</option>
+                    <option value="你出生在哪个城市？">你出生在哪个城市？</option>
+                    <option value="你母亲的姓名是什么？">你母亲的姓名是什么？</option>
+                    <option value="你小学叫什么名字？">你小学叫什么名字？</option>
+                </select>
+                <input type="text" id="auth-security-answer" placeholder="密保答案" class="auth-input" />
+            </div>
             <button id="auth-submit" class="auth-btn">登录</button>
             <p id="auth-error" class="auth-error"></p>
+            <button id="forgot-password-link" class="forgot-link">忘记密码？</button>
         </div>
     </div>
 
+    <!-- 忘记密码弹窗 -->
+    <div class="modal hidden" id="forgot-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>找回密码</h2>
+                <button id="forgot-modal-close">✕</button>
+            </div>
+            <!-- Step 1: 输入用户名 -->
+            <div id="forgot-step1">
+                <input type="text" id="forgot-username" placeholder="输入你的用户名" class="modal-input" />
+                <button id="forgot-get-question" class="auth-btn">下一步</button>
+                <p id="forgot-step1-error" class="auth-error"></p>
+            </div>
+            <!-- Step 2: 回答密保问题 -->
+            <div id="forgot-step2" class="hidden">
+                <p id="forgot-display-question" class="forgot-question-text"></p>
+                <input type="text" id="forgot-answer" placeholder="输入密保答案" class="modal-input" />
+                <input type="password" id="forgot-new-password" placeholder="输入新密码（至少4位）" class="modal-input" />
+                <button id="forgot-reset" class="auth-btn">重置密码</button>
+                <p id="forgot-step2-error" class="auth-error"></p>
+            </div>
+            <!-- Step 3: 成功 -->
+            <div id="forgot-step3" class="hidden">
+                <div class="forgot-success-icon">✓</div>
+                <p>密码已重置成功！请用新密码登录。</p>
+                <button id="forgot-done" class="auth-btn">好的</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主应用 -->
     <div id="app" class="hidden">
         <div class="top-bar">
             <span id="current-user" class="user-badge"></span>
             <button id="logout-btn" class="logout-btn">退出</button>
         </div>
 
+        <!-- 待办清单 -->
         <div class="page" id="page-todos">
             <div class="header">
                 <h1>待办清单</h1>
@@ -51,6 +97,7 @@
             </div>
         </div>
 
+        <!-- 计时器 -->
         <div class="page hidden" id="page-timers">
             <div class="header"><h1>计时器</h1></div>
             <div class="filter-tabs" id="timer-filters">
@@ -68,6 +115,7 @@
             </div>
         </div>
 
+        <!-- 目标 -->
         <div class="page hidden" id="page-goals">
             <div class="header"><h1>目标管理</h1></div>
             <div class="list" id="goal-list"></div>
@@ -79,6 +127,7 @@
             </div>
         </div>
 
+        <!-- 倒数日 -->
         <div class="page hidden" id="page-countdowns">
             <div class="header"><h1>倒数日</h1></div>
             <div class="list" id="countdown-list"></div>
@@ -91,6 +140,7 @@
             </div>
         </div>
 
+        <!-- 统计 -->
         <div class="page hidden" id="page-stats">
             <div class="header"><h1>统计</h1></div>
             <div class="filter-tabs" id="stats-filters">
@@ -106,6 +156,7 @@
             <div class="stats-section" id="stats-diaries"></div>
         </div>
 
+        <!-- 日记 -->
         <div class="page hidden" id="page-diary">
             <div class="header"><h1>日记</h1></div>
             <div class="list" id="diary-list"></div>
@@ -121,8 +172,10 @@
             </div>
         </div>
 
+        <!-- 保密柜 -->
         <div class="page hidden" id="page-vault">
             <div class="header"><h1>🔒 保密柜</h1></div>
+            <!-- 保密柜未设置 -->
             <div id="vault-setup" class="vault-section hidden">
                 <p class="vault-tip">设置一个独立密码,用于加密和保护你的私密内容。内容在浏览器端加密后存储,服务器只能看到密文。</p>
                 <input type="password" id="vault-setup-password" placeholder="设置保密柜密码" class="auth-input" />
@@ -130,6 +183,7 @@
                 <button id="vault-setup-btn" class="auth-btn">设置密码</button>
                 <p id="vault-setup-error" class="auth-error"></p>
             </div>
+            <!-- 保密柜锁定 -->
             <div id="vault-locked" class="vault-section hidden">
                 <div class="vault-lock-icon">🔒</div>
                 <p>输入保密柜密码以查看加密内容</p>
@@ -137,6 +191,7 @@
                 <button id="vault-unlock-btn" class="auth-btn">解锁</button>
                 <p id="vault-unlock-error" class="auth-error"></p>
             </div>
+            <!-- 保密柜已解锁 -->
             <div id="vault-unlocked" class="vault-section hidden">
                 <div class="vault-tabs">
                     <button class="vault-tab active" data-vault-filter="all">全部</button>
@@ -154,6 +209,7 @@
             </div>
         </div>
 
+        <!-- 管理后台 -->
         <div class="page hidden" id="page-admin">
             <div class="header"><h1>管理后台</h1></div>
             <div class="stats-cards" id="admin-cards"></div>
@@ -164,6 +220,21 @@
         </div>
     </div>
 
+    <!-- 管理员重置密码弹窗 -->
+    <div class="modal hidden" id="admin-reset-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>重置用户密码</h2>
+                <button id="admin-reset-close">✕</button>
+            </div>
+            <p class="forgot-question-text">为用户 <span id="admin-reset-username" style="font-weight:700;color:var(--primary-light)"></span> 设置新密码</p>
+            <input type="password" id="admin-reset-password" placeholder="输入新密码（至少4位）" class="modal-input" />
+            <button id="admin-reset-confirm" class="auth-btn">确认重置</button>
+            <p id="admin-reset-error" class="auth-error"></p>
+        </div>
+    </div>
+
+    <!-- 日记编辑弹窗 -->
     <div class="modal hidden" id="diary-modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -185,6 +256,7 @@
         </div>
     </div>
 
+    <!-- 保密柜内容编辑弹窗 -->
     <div class="modal hidden" id="vault-modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -200,6 +272,7 @@
         </div>
     </div>
 
+    <!-- 底部导航 -->
     <nav class="bottom-nav">
         <button class="nav-btn active" data-page="todos"><span class="nav-icon">✓</span><span>待办</span></button>
         <button class="nav-btn" data-page="timers"><span class="nav-icon">⏱</span><span>计时</span></button>
