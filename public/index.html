@@ -7,10 +7,30 @@
     <meta name="theme-color" content="#6366f1">
     <title>生活管理面板</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
 </head>
 <body>
-    <div id="app">
-        <!-- 待办清单 -->
+    <div id="auth-page" class="auth-page">
+        <div class="auth-card">
+            <h1>生活管理面板</h1>
+            <p class="auth-subtitle">多用户 · 数据隔离 · 保密柜加密</p>
+            <div class="auth-tabs">
+                <button class="auth-tab active" data-mode="login">登录</button>
+                <button class="auth-tab" data-mode="register">注册</button>
+            </div>
+            <input type="text" id="auth-username" placeholder="用户名" class="auth-input" />
+            <input type="password" id="auth-password" placeholder="密码" class="auth-input" />
+            <button id="auth-submit" class="auth-btn">登录</button>
+            <p id="auth-error" class="auth-error"></p>
+        </div>
+    </div>
+
+    <div id="app" class="hidden">
+        <div class="top-bar">
+            <span id="current-user" class="user-badge"></span>
+            <button id="logout-btn" class="logout-btn">退出</button>
+        </div>
+
         <div class="page" id="page-todos">
             <div class="header">
                 <h1>待办清单</h1>
@@ -31,7 +51,6 @@
             </div>
         </div>
 
-        <!-- 计时器 -->
         <div class="page hidden" id="page-timers">
             <div class="header"><h1>计时器</h1></div>
             <div class="filter-tabs" id="timer-filters">
@@ -49,7 +68,6 @@
             </div>
         </div>
 
-        <!-- 目标 -->
         <div class="page hidden" id="page-goals">
             <div class="header"><h1>目标管理</h1></div>
             <div class="list" id="goal-list"></div>
@@ -61,7 +79,6 @@
             </div>
         </div>
 
-        <!-- 倒数日 -->
         <div class="page hidden" id="page-countdowns">
             <div class="header"><h1>倒数日</h1></div>
             <div class="list" id="countdown-list"></div>
@@ -74,7 +91,6 @@
             </div>
         </div>
 
-        <!-- 统计 -->
         <div class="page hidden" id="page-stats">
             <div class="header"><h1>统计</h1></div>
             <div class="filter-tabs" id="stats-filters">
@@ -90,7 +106,6 @@
             <div class="stats-section" id="stats-diaries"></div>
         </div>
 
-        <!-- 日记 -->
         <div class="page hidden" id="page-diary">
             <div class="header"><h1>日记</h1></div>
             <div class="list" id="diary-list"></div>
@@ -105,9 +120,50 @@
                 <button id="diary-add-btn">+</button>
             </div>
         </div>
+
+        <div class="page hidden" id="page-vault">
+            <div class="header"><h1>🔒 保密柜</h1></div>
+            <div id="vault-setup" class="vault-section hidden">
+                <p class="vault-tip">设置一个独立密码,用于加密和保护你的私密内容。内容在浏览器端加密后存储,服务器只能看到密文。</p>
+                <input type="password" id="vault-setup-password" placeholder="设置保密柜密码" class="auth-input" />
+                <input type="password" id="vault-setup-confirm" placeholder="确认密码" class="auth-input" />
+                <button id="vault-setup-btn" class="auth-btn">设置密码</button>
+                <p id="vault-setup-error" class="auth-error"></p>
+            </div>
+            <div id="vault-locked" class="vault-section hidden">
+                <div class="vault-lock-icon">🔒</div>
+                <p>输入保密柜密码以查看加密内容</p>
+                <input type="password" id="vault-unlock-password" placeholder="保密柜密码" class="auth-input" />
+                <button id="vault-unlock-btn" class="auth-btn">解锁</button>
+                <p id="vault-unlock-error" class="auth-error"></p>
+            </div>
+            <div id="vault-unlocked" class="vault-section hidden">
+                <div class="vault-tabs">
+                    <button class="vault-tab active" data-vault-filter="all">全部</button>
+                    <button class="vault-tab" data-vault-filter="diary">日记</button>
+                    <button class="vault-tab" data-vault-filter="todo">待办</button>
+                    <button class="vault-tab" data-vault-filter="note">便签</button>
+                </div>
+                <div class="list" id="vault-list"></div>
+                <div class="add-bar">
+                    <select id="vault-type"><option value="note">便签</option><option value="diary">日记</option><option value="todo">待办</option></select>
+                    <input type="text" id="vault-title" placeholder="标题" />
+                    <button id="vault-add-btn">+ 添加</button>
+                </div>
+                <button id="vault-lock-btn" class="vault-lockback-btn">🔒 重新锁定</button>
+            </div>
+        </div>
+
+        <div class="page hidden" id="page-admin">
+            <div class="header"><h1>管理后台</h1></div>
+            <div class="stats-cards" id="admin-cards"></div>
+            <div class="stats-section">
+                <h3>用户列表</h3>
+                <div id="admin-user-list"></div>
+            </div>
+        </div>
     </div>
 
-    <!-- 日记编辑弹窗 -->
     <div class="modal hidden" id="diary-modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -122,11 +178,28 @@
                 <option>🥳</option><option>😭</option><option>🤗</option><option>😐</option>
             </select>
             <textarea id="diary-edit-content" placeholder="今天发生了什么..." class="modal-textarea"></textarea>
-            <button id="diary-save-btn" class="modal-save-btn">保存</button>
+            <div class="modal-actions">
+                <button id="diary-to-vault" class="modal-vault-btn">🔒 移入保密柜</button>
+                <button id="diary-save-btn" class="modal-save-btn">保存</button>
+            </div>
         </div>
     </div>
 
-    <!-- 底部导航 -->
+    <div class="modal hidden" id="vault-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>编辑保密内容</h2>
+                <button id="vault-modal-close">✕</button>
+            </div>
+            <input type="text" id="vault-edit-title" placeholder="标题" class="modal-input" />
+            <textarea id="vault-edit-content" placeholder="内容..." class="modal-textarea"></textarea>
+            <div class="modal-actions">
+                <button id="vault-delete-btn" class="modal-del-btn">删除</button>
+                <button id="vault-edit-save-btn" class="modal-save-btn">保存</button>
+            </div>
+        </div>
+    </div>
+
     <nav class="bottom-nav">
         <button class="nav-btn active" data-page="todos"><span class="nav-icon">✓</span><span>待办</span></button>
         <button class="nav-btn" data-page="timers"><span class="nav-icon">⏱</span><span>计时</span></button>
@@ -134,6 +207,8 @@
         <button class="nav-btn" data-page="countdowns"><span class="nav-icon">📅</span><span>倒数日</span></button>
         <button class="nav-btn" data-page="stats"><span class="nav-icon">📊</span><span>统计</span></button>
         <button class="nav-btn" data-page="diary"><span class="nav-icon">📖</span><span>日记</span></button>
+        <button class="nav-btn" data-page="vault"><span class="nav-icon">🔒</span><span>保密柜</span></button>
+        <button class="nav-btn nav-admin hidden" data-page="admin"><span class="nav-icon">⚙️</span><span>管理</span></button>
     </nav>
 
     <script src="app.js"></script>
