@@ -134,7 +134,18 @@ document.getElementById('forgot-get-question').addEventListener('click', async (
         const res = await api('/api/forgot-password/question', 'POST', { username });
         if (res.error) { document.getElementById('forgot-step1-error').textContent = res.error; return; }
         forgotUsername = username;
-        document.getElementById('forgot-display-question').textContent = '🔒 ' + res.securityQuestion;
+        if (res.resetApproved) {
+            document.getElementById('forgot-display-question').style.display = 'none';
+            document.getElementById('forgot-admin-approved-msg').style.display = 'block';
+            document.getElementById('forgot-answer').classList.add('hidden');
+            document.getElementById('forgot-request-admin-2').classList.add('hidden');
+        } else {
+            document.getElementById('forgot-display-question').style.display = 'block';
+            document.getElementById('forgot-display-question').textContent = '🔒 ' + res.securityQuestion;
+            document.getElementById('forgot-admin-approved-msg').style.display = 'none';
+            document.getElementById('forgot-answer').classList.remove('hidden');
+            document.getElementById('forgot-request-admin-2').classList.remove('hidden');
+        }
         document.getElementById('forgot-step1').classList.add('hidden');
         document.getElementById('forgot-step2').classList.remove('hidden');
     } catch(e) { document.getElementById('forgot-step1-error').textContent = '请求失败，请稍后重试'; }
@@ -144,12 +155,15 @@ document.getElementById('forgot-reset').addEventListener('click', async () => {
     const answer = document.getElementById('forgot-answer').value.trim();
     const newPassword = document.getElementById('forgot-new-password').value;
     const newPasswordConfirm = document.getElementById('forgot-new-password-confirm').value;
-    if (!answer) { document.getElementById('forgot-step2-error').textContent = '请输入密保答案'; return; }
+    const adminApproved = document.getElementById('forgot-admin-approved-msg').style.display !== 'none';
+    if (!adminApproved && !answer) { document.getElementById('forgot-step2-error').textContent = '请输入密保答案'; return; }
     if (!newPassword || newPassword.length < 4) { document.getElementById('forgot-step2-error').textContent = '新密码至少4位'; return; }
     if (!newPasswordConfirm) { document.getElementById('forgot-step2-error').textContent = '请再次输入密码确认'; return; }
     if (newPassword !== newPasswordConfirm) { document.getElementById('forgot-step2-error').textContent = '两次密码不一致，请重新输入'; return; }
     try {
-        const res = await api('/api/forgot-password/reset', 'POST', { username: forgotUsername, securityAnswer: answer, newPassword });
+        const body = { username: forgotUsername, newPassword };
+        if (!adminApproved) body.securityAnswer = answer;
+        const res = await api('/api/forgot-password/reset', 'POST', body);
         if (res.error) { document.getElementById('forgot-step2-error').textContent = res.error; return; }
         document.getElementById('forgot-step2').classList.add('hidden');
         document.getElementById('forgot-step3').classList.remove('hidden');
@@ -196,28 +210,18 @@ let adminResetUsername = '';
 document.getElementById('admin-reset-close').addEventListener('click', () => document.getElementById('admin-reset-modal').classList.add('hidden'));
 
 document.getElementById('admin-reset-confirm').addEventListener('click', async () => {
-    const newPassword = document.getElementById('admin-reset-password').value;
-    const newPasswordConfirm = document.getElementById('admin-reset-password-confirm').value;
-    if (!newPassword || newPassword.length < 4) { document.getElementById('admin-reset-error').textContent = '密码至少4位'; return; }
-    if (!newPasswordConfirm) { document.getElementById('admin-reset-error').textContent = '请再次输入密码确认'; return; }
-    if (newPassword !== newPasswordConfirm) { document.getElementById('admin-reset-error').textContent = '两次密码不一致，请重新输入'; return; }
     try {
-        const res = await api('/api/admin/reset-password', 'POST', { username: adminResetUsername, newPassword });
+        const res = await api('/api/admin/approve-reset', 'POST', { username: adminResetUsername });
         if (res.error) { document.getElementById('admin-reset-error').textContent = res.error; return; }
         document.getElementById('admin-reset-modal').classList.add('hidden');
-        document.getElementById('admin-reset-password').value = '';
-        document.getElementById('admin-reset-password-confirm').value = '';
-        document.getElementById('admin-reset-error').textContent = '';
-        alert('已成功重置 ' + adminResetUsername + ' 的密码');
+        alert('已批准 ' + adminResetUsername + ' 的密码重置请求\n该用户现在可以自行设置新密码');
         renderAdmin();
-    } catch(e) { document.getElementById('admin-reset-error').textContent = '重置失败'; }
+    } catch(e) { document.getElementById('admin-reset-error').textContent = '操作失败'; }
 });
 
 function adminResetPassword(username) {
     adminResetUsername = username;
     document.getElementById('admin-reset-username').textContent = username;
-    document.getElementById('admin-reset-password').value = '';
-    document.getElementById('admin-reset-password-confirm').value = '';
     document.getElementById('admin-reset-error').textContent = '';
     document.getElementById('admin-reset-modal').classList.remove('hidden');
 }
@@ -539,7 +543,7 @@ async function renderAdmin() {
                         <span class="req-username">${r.username}</span>
                         <div class="req-time">提交于 ${relTime(r.createdAt)}</div>
                     </div>
-                    <button class="admin-reset-btn" onclick="adminResetPassword('${r.username}')">重置密码</button>
+                    <button class="admin-reset-btn" onclick="adminResetPassword('${r.username}')">批准重置</button>
                 </div>`).join('');
         } else {
             reqList.innerHTML = '<div class="empty-tip" style="padding:16px 0">暂无重置请求</div>';
@@ -552,7 +556,7 @@ async function renderAdmin() {
                 <span class="admin-username">${u.username}</span>
                 <span class="admin-status ${active?'active':'inactive'}">${active?'活跃':'不活跃'}</span>
                 <span class="admin-time">注册: ${fmtDate(u.createdAt)}</span>
-                <button class="admin-reset-btn" onclick="adminResetPassword('${u.username}')">重置密码</button></div>`;
+                <button class="admin-reset-btn" onclick="adminResetPassword('${u.username}')">批准重置</button></div>`;
         }).join('');
     } catch(e) {}
 }
