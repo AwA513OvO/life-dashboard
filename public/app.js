@@ -67,6 +67,7 @@ document.querySelectorAll('.auth-tab').forEach(tab => {
         authMode = tab.dataset.mode;
         document.getElementById('auth-submit').textContent = authMode === 'login' ? '登录' : '注册';
         document.getElementById('auth-error').textContent = '';
+        document.getElementById('auth-password-confirm').classList.toggle('hidden', authMode !== 'register');
         document.getElementById('security-fields').classList.toggle('hidden', authMode !== 'register');
     });
 });
@@ -78,6 +79,9 @@ document.getElementById('auth-submit').addEventListener('click', async () => {
     
     let body = { username, password };
     if (authMode === 'register') {
+        const pwConfirm = document.getElementById('auth-password-confirm').value;
+        if (!pwConfirm) { document.getElementById('auth-error').textContent = '请再次输入密码确认'; return; }
+        if (password !== pwConfirm) { document.getElementById('auth-error').textContent = '两次密码不一致，请重新输入'; return; }
         const sq = document.getElementById('auth-security-question').value;
         const sa = document.getElementById('auth-security-answer').value.trim();
         if (!sq || !sa) { document.getElementById('auth-error').textContent = '请选择密保问题并填写答案'; return; }
@@ -92,6 +96,7 @@ document.getElementById('auth-submit').addEventListener('click', async () => {
         localStorage.setItem('token', token);
         document.getElementById('auth-username').value = '';
         document.getElementById('auth-password').value = '';
+        document.getElementById('auth-password-confirm').value = '';
         document.getElementById('auth-security-answer').value = '';
         document.getElementById('auth-error').textContent = '';
         isAdmin = res.isAdmin;
@@ -102,6 +107,7 @@ document.getElementById('auth-submit').addEventListener('click', async () => {
 });
 
 document.getElementById('auth-password').addEventListener('keypress', e => { if (e.key === 'Enter') document.getElementById('auth-submit').click(); });
+document.getElementById('auth-password-confirm').addEventListener('keypress', e => { if (e.key === 'Enter') document.getElementById('auth-submit').click(); });
 document.getElementById('logout-btn').addEventListener('click', logout);
 
 // ====== Forgot Password ======
@@ -114,6 +120,7 @@ document.getElementById('forgot-password-link').addEventListener('click', () => 
     document.getElementById('forgot-username').value = '';
     document.getElementById('forgot-answer').value = '';
     document.getElementById('forgot-new-password').value = '';
+    document.getElementById('forgot-new-password-confirm').value = '';
     document.getElementById('forgot-step1-error').textContent = '';
     document.getElementById('forgot-step2-error').textContent = '';
 });
@@ -135,8 +142,11 @@ document.getElementById('forgot-get-question').addEventListener('click', async (
 document.getElementById('forgot-reset').addEventListener('click', async () => {
     const answer = document.getElementById('forgot-answer').value.trim();
     const newPassword = document.getElementById('forgot-new-password').value;
+    const newPasswordConfirm = document.getElementById('forgot-new-password-confirm').value;
     if (!answer) { document.getElementById('forgot-step2-error').textContent = '请输入密保答案'; return; }
     if (!newPassword || newPassword.length < 4) { document.getElementById('forgot-step2-error').textContent = '新密码至少4位'; return; }
+    if (!newPasswordConfirm) { document.getElementById('forgot-step2-error').textContent = '请再次输入密码确认'; return; }
+    if (newPassword !== newPasswordConfirm) { document.getElementById('forgot-step2-error').textContent = '两次密码不一致，请重新输入'; return; }
     try {
         const res = await api('/api/forgot-password/reset', 'POST', { username: forgotUsername, securityAnswer: answer, newPassword });
         if (res.error) { document.getElementById('forgot-step2-error').textContent = res.error; return; }
@@ -158,12 +168,16 @@ document.getElementById('admin-reset-close').addEventListener('click', () => doc
 
 document.getElementById('admin-reset-confirm').addEventListener('click', async () => {
     const newPassword = document.getElementById('admin-reset-password').value;
+    const newPasswordConfirm = document.getElementById('admin-reset-password-confirm').value;
     if (!newPassword || newPassword.length < 4) { document.getElementById('admin-reset-error').textContent = '密码至少4位'; return; }
+    if (!newPasswordConfirm) { document.getElementById('admin-reset-error').textContent = '请再次输入密码确认'; return; }
+    if (newPassword !== newPasswordConfirm) { document.getElementById('admin-reset-error').textContent = '两次密码不一致，请重新输入'; return; }
     try {
         const res = await api('/api/admin/reset-password', 'POST', { username: adminResetUsername, newPassword });
         if (res.error) { document.getElementById('admin-reset-error').textContent = res.error; return; }
         document.getElementById('admin-reset-modal').classList.add('hidden');
         document.getElementById('admin-reset-password').value = '';
+        document.getElementById('admin-reset-password-confirm').value = '';
         document.getElementById('admin-reset-error').textContent = '';
         alert('已成功重置 ' + adminResetUsername + ' 的密码');
     } catch(e) { document.getElementById('admin-reset-error').textContent = '重置失败'; }
@@ -173,6 +187,7 @@ function adminResetPassword(username) {
     adminResetUsername = username;
     document.getElementById('admin-reset-username').textContent = username;
     document.getElementById('admin-reset-password').value = '';
+    document.getElementById('admin-reset-password-confirm').value = '';
     document.getElementById('admin-reset-error').textContent = '';
     document.getElementById('admin-reset-modal').classList.remove('hidden');
 }
@@ -387,7 +402,7 @@ async function setupVault() {
     const pw = document.getElementById('vault-setup-password').value;
     const cf = document.getElementById('vault-setup-confirm').value;
     if (pw.length < 4) { document.getElementById('vault-setup-error').textContent = '密码至少4位'; return; }
-    if (pw !== cf) { document.getElementById('vault-setup-error').textContent = '两次密码不一致'; return; }
+    if (pw !== cf) { document.getElementById('vault-setup-error').textContent = '两次密码不一致，请重新输入'; return; }
     try {
         await api('/api/vault/setup', 'POST', { vaultPassword: pw });
         vaultKey = pw; vaultUnlocked = true;
