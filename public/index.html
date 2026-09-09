@@ -46,11 +46,14 @@
                 <h2>找回密码</h2>
                 <button id="forgot-modal-close">✕</button>
             </div>
+            <!-- Step 1: 输入用户名 -->
             <div id="forgot-step1">
                 <input type="text" id="forgot-username" placeholder="输入你的用户名" class="modal-input" />
                 <button id="forgot-get-question" class="auth-btn">下一步</button>
                 <p id="forgot-step1-error" class="auth-error"></p>
+                <button id="forgot-request-admin" class="forgot-link" style="margin-top:16px">密保也忘了？找管理员重置</button>
             </div>
+            <!-- Step 2: 回答密保问题 + 设置新密码 -->
             <div id="forgot-step2" class="hidden">
                 <p id="forgot-display-question" class="forgot-question-text"></p>
                 <input type="text" id="forgot-answer" placeholder="输入密保答案" class="modal-input" />
@@ -58,11 +61,20 @@
                 <input type="password" id="forgot-new-password-confirm" placeholder="确认新密码" class="modal-input" />
                 <button id="forgot-reset" class="auth-btn">重置密码</button>
                 <p id="forgot-step2-error" class="auth-error"></p>
+                <button id="forgot-request-admin-2" class="forgot-link" style="margin-top:16px">密保也忘了？找管理员重置</button>
             </div>
+            <!-- Step 3: 成功 -->
             <div id="forgot-step3" class="hidden">
                 <div class="forgot-success-icon">✓</div>
                 <p>密码已重置成功！请用新密码登录。</p>
                 <button id="forgot-done" class="auth-btn">好的</button>
+            </div>
+            <!-- Step 4: 管理员重置请求 -->
+            <div id="forgot-step4" class="hidden">
+                <div class="forgot-success-icon">📨</div>
+                <p>已向管理员发送重置请求</p>
+                <p style="font-size:13px;color:var(--text-dim);margin-top:8px">管理员处理后，你可以用新密码登录。请通过其他方式联系管理员告知你的新密码。</p>
+                <button id="forgot-request-done" class="auth-btn">好的</button>
             </div>
         </div>
     </div>
@@ -209,6 +221,10 @@
         <div class="page hidden" id="page-admin">
             <div class="header"><h1>管理后台</h1></div>
             <div class="stats-cards" id="admin-cards"></div>
+            <div class="stats-section" id="admin-requests-section">
+                <h3>📨 密码重置请求</h3>
+                <div id="admin-requests-list"></div>
+            </div>
             <div class="stats-section">
                 <h3>用户列表</h3>
                 <div id="admin-user-list"></div>
