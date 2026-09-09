@@ -117,6 +117,7 @@ document.getElementById('forgot-password-link').addEventListener('click', () => 
     document.getElementById('forgot-step1').classList.remove('hidden');
     document.getElementById('forgot-step2').classList.add('hidden');
     document.getElementById('forgot-step3').classList.add('hidden');
+    document.getElementById('forgot-step4').classList.add('hidden');
     document.getElementById('forgot-username').value = '';
     document.getElementById('forgot-answer').value = '';
     document.getElementById('forgot-new-password').value = '';
@@ -162,6 +163,34 @@ document.getElementById('forgot-done').addEventListener('click', () => {
     document.getElementById('auth-username').focus();
 });
 
+// ====== Request Admin Reset (when security question also forgotten) ======
+document.getElementById('forgot-request-admin').addEventListener('click', async () => {
+    const username = document.getElementById('forgot-username').value.trim();
+    if (!username) { document.getElementById('forgot-step1-error').textContent = '请先输入用户名'; return; }
+    try {
+        const res = await api('/api/forgot-password/request-admin', 'POST', { username });
+        if (res.error) { document.getElementById('forgot-step1-error').textContent = res.error; return; }
+        document.getElementById('forgot-step1').classList.add('hidden');
+        document.getElementById('forgot-step4').classList.remove('hidden');
+    } catch(e) { document.getElementById('forgot-step1-error').textContent = '请求失败，请稍后重试'; }
+});
+
+document.getElementById('forgot-request-admin-2').addEventListener('click', async () => {
+    try {
+        const res = await api('/api/forgot-password/request-admin', 'POST', { username: forgotUsername });
+        if (res.error) { document.getElementById('forgot-step2-error').textContent = res.error; return; }
+        document.getElementById('forgot-step2').classList.add('hidden');
+        document.getElementById('forgot-step4').classList.remove('hidden');
+    } catch(e) { document.getElementById('forgot-step2-error').textContent = '请求失败，请稍后重试'; }
+});
+
+document.getElementById('forgot-request-done').addEventListener('click', () => {
+    document.getElementById('forgot-modal').classList.add('hidden');
+    document.getElementById('auth-username').value = '';
+    document.getElementById('auth-password').value = '';
+    document.getElementById('auth-username').focus();
+});
+
 // ====== Admin Reset Password ======
 let adminResetUsername = '';
 document.getElementById('admin-reset-close').addEventListener('click', () => document.getElementById('admin-reset-modal').classList.add('hidden'));
@@ -180,6 +209,7 @@ document.getElementById('admin-reset-confirm').addEventListener('click', async (
         document.getElementById('admin-reset-password-confirm').value = '';
         document.getElementById('admin-reset-error').textContent = '';
         alert('已成功重置 ' + adminResetUsername + ' 的密码');
+        renderAdmin();
     } catch(e) { document.getElementById('admin-reset-error').textContent = '重置失败'; }
 });
 
@@ -499,6 +529,22 @@ async function renderAdmin() {
             <div class="stat-card success"><div class="num">${stats.activeToday}</div><div class="label">今日活跃</div></div>
             <div class="stat-card warning"><div class="num">${stats.activeWeek}</div><div class="label">本周活跃</div></div>
             <div class="stat-card"><div class="num">${stats.newToday}</div><div class="label">今日新增</div></div>`;
+        
+        // Render pending password reset requests
+        const reqList = document.getElementById('admin-requests-list');
+        if (stats.pendingRequests && stats.pendingRequests.length > 0) {
+            reqList.innerHTML = stats.pendingRequests.map(r => `
+                <div class="admin-request-item">
+                    <div>
+                        <span class="req-username">${r.username}</span>
+                        <div class="req-time">提交于 ${relTime(r.createdAt)}</div>
+                    </div>
+                    <button class="admin-reset-btn" onclick="adminResetPassword('${r.username}')">重置密码</button>
+                </div>`).join('');
+        } else {
+            reqList.innerHTML = '<div class="empty-tip" style="padding:16px 0">暂无重置请求</div>';
+        }
+        
         const now = Date.now();
         document.getElementById('admin-user-list').innerHTML = stats.users.map(u => {
             const active = (now - new Date(u.lastActive).getTime()) < 86400000;
