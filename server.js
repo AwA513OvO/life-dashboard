@@ -23,6 +23,7 @@ const userSchema = new mongoose.Schema({
     securityQuestion: { type: String, default: null },
     securityAnswer: { type: String, default: null },
     isAdmin: { type: Boolean, default: false },
+    resetApproved: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now },
     lastActive: { type: Date, default: Date.now }
 });
@@ -111,17 +112,27 @@ app.post('/api/forgot-password/question', async (req, res) => {
     if (!username) return res.status(400).json({ error: 'Need username' });
     const user = await User.findOne({ username });
     if (!user) return res.status(400).json({ error: 'User not found' });
+    if (user.resetApproved) return res.json({ resetApproved: true });
     if (!user.securityQuestion) return res.status(400).json({ error: 'No security question set' });
     res.json({ securityQuestion: user.securityQuestion });
 });
 
 app.post('/api/forgot-password/reset', async (req, res) => {
     const { username, securityAnswer, newPassword } = req.body;
-    if (!username || !securityAnswer || !newPassword) return res.status(400).json({ error: 'Missing fields' });
+    if (!username || !newPassword) return res.status(400).json({ error: 'Missing fields' });
     if (newPassword.length < 4) return res.status(400).json({ error: 'Password too short' });
     
     const user = await User.findOne({ username });
     if (!user) return res.status(400).json({ error: 'User not found' });
+    
+    if (user.resetApproved) {
+        const hash = await bcrypt.hash(newPassword, 10);
+        await User.findByIdAndUpdate(user._id, { password: hash, resetApproved: false });
+        await ResetRequest.updateMany({ username, status: 'pending' }, { status: 'resolved', resolvedAt: new Date() });
+        return res.json({ ok: true });
+    }
+    
+    if (!securityAnswer) return res.status(400).json({ error: 'Missing answer' });
     if (!user.securityAnswer) return res.status(400).json({ error: 'No security question set' });
     
     const match = await bcrypt.compare(securityAnswer.trim().toLowerCase(), user.securityAnswer);
@@ -158,93 +169,4 @@ app.post('/api/vault/setup', auth, async (req, res) => {
 });
 
 app.post('/api/vault/verify', auth, async (req, res) => {
-    const { vaultPassword } = req.body;
-    const user = await User.findById(req.userId);
-    if (!user.vaultPassword) return res.status(400).json({ error: 'Vault not set' });
-    
-    const match = await bcrypt.compare(vaultPassword, user.vaultPassword);
-    if (!match) return res.status(400).json({ error: 'Wrong vault password' });
-    res.json({ ok: true });
-});
-
-app.post('/api/vault/reset', auth, async (req, res) => {
-    const user = await User.findById(req.userId);
-    if (!user.vaultPassword) return res.status(400).json({ error: 'Vault not set' });
-    
-    await User.findByIdAndUpdate(req.userId, { vaultPassword: null });
-    await Data.findOneAndUpdate({ userId: req.userId }, { vault: [] });
-    res.json({ ok: true });
-});
-
-// ====== Data Routes ======
-app.get('/api/data', auth, async (req, res) => {
-    let d = await Data.findOne({ userId: req.userId });
-    if (!d) d = await Data.create({ userId: req.userId });
-    res.json({
-        todos: d.todos, timers: d.timers, goals: d.goals,
-        countdowns: d.countdowns, diaries: d.diaries, vault: d.vault
-    });
-});
-
-app.post('/api/data', auth, async (req, res) => {
-    const update = {};
-    for (const key of ['todos', 'timers', 'goals', 'countdowns', 'diaries', 'vault']) {
-        if (req.body[key] !== undefined) update[key] = req.body[key];
-    }
-    await Data.findOneAndUpdate({ userId: req.userId }, update, { upsert: true });
-    res.json({ ok: true });
-});
-
-// ====== Admin Routes ======
-app.post('/api/admin/reset-password', auth, async (req, res) => {
-    if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
-    const { username, newPassword } = req.body;
-    if (!username || !newPassword) return res.status(400).json({ error: 'Missing fields' });
-    if (newPassword.length < 4) return res.status(400).json({ error: 'Password too short' });
-    
-    const user = await User.findOne({ username });
-    if (!user) return res.status(400).json({ error: 'User not found' });
-    
-    const hash = await bcrypt.hash(newPassword, 10);
-    await User.findByIdAndUpdate(user._id, { password: hash });
-    await ResetRequest.updateMany({ username, status: 'pending' }, { status: 'resolved', resolvedAt: new Date() });
-    res.json({ ok: true });
-});
-
-app.get('/api/admin/stats', auth, async (req, res) => {
-    if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
-    
-    const totalUsers = await User.countDocuments();
-    const now = new Date();
-    const dayAgo = new Date(now.getTime() - 86400000);
-    const weekAgo = new Date(now.getTime() - 604800000);
-    const monthAgo = new Date(now.getTime() - 2592000000);
-    
-    const activeToday = await User.countDocuments({ lastActive: { $gte: dayAgo } });
-    const activeWeek = await User.countDocuments({ lastActive: { $gte: weekAgo } });
-    const activeMonth = await User.countDocuments({ lastActive: { $gte: monthAgo } });
-    
-    const newToday = await User.countDocuments({ createdAt: { $gte: dayAgo } });
-    const newWeek = await User.countDocuments({ createdAt: { $gte: weekAgo } });
-    
-    const users = await User.find({}, { username: 1, createdAt: 1, lastActive: 1, _id: 0 }).sort({ createdAt: -1 });
-    
-    const pendingRequests = await ResetRequest.find({ status: 'pending' }).sort({ createdAt: -1 });
-    
-    res.json({ totalUsers, activeToday, activeWeek, activeMonth, newToday, newWeek, users, pendingRequests });
-});
-
-app.get('/api/admin/reset-requests', auth, async (req, res) => {
-    if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
-    const requests = await ResetRequest.find({ status: 'pending' }).sort({ createdAt: -1 });
-    res.json({ requests });
-});
-
-// ====== Fallback ======
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Life Dashboard v2 running at http://localhost:${PORT}`);
-});
+   
