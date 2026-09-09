@@ -37,8 +37,16 @@ const dataSchema = new mongoose.Schema({
     vault: { type: Array, default: [] }
 });
 
+const resetRequestSchema = new mongoose.Schema({
+    username: { type: String, required: true },
+    status: { type: String, default: 'pending' },
+    createdAt: { type: Date, default: Date.now },
+    resolvedAt: { type: Date, default: null }
+});
+
 const User = mongoose.model('User', userSchema);
 const Data = mongoose.model('Data', dataSchema);
+const ResetRequest = mongoose.model('ResetRequest', resetRequestSchema);
 
 // ====== Auth Middleware ======
 function auth(req, res, next) {
@@ -124,6 +132,21 @@ app.post('/api/forgot-password/reset', async (req, res) => {
     res.json({ ok: true });
 });
 
+// ====== Forgot Password - Request Admin Reset ======
+app.post('/api/forgot-password/request-admin', async (req, res) => {
+    const { username } = req.body;
+    if (!username) return res.status(400).json({ error: 'Need username' });
+    
+    const user = await User.findOne({ username });
+    if (!user) return res.status(400).json({ error: 'User not found' });
+    
+    const existing = await ResetRequest.findOne({ username, status: 'pending' });
+    if (existing) return res.status(400).json({ error: 'Already requested' });
+    
+    await ResetRequest.create({ username, status: 'pending' });
+    res.json({ ok: true });
+});
+
 // ====== Vault Password Routes ======
 app.post('/api/vault/setup', auth, async (req, res) => {
     const { vaultPassword } = req.body;
@@ -144,7 +167,6 @@ app.post('/api/vault/verify', auth, async (req, res) => {
     res.json({ ok: true });
 });
 
-// Reset vault - clears vault password AND all encrypted content
 app.post('/api/vault/reset', auth, async (req, res) => {
     const user = await User.findById(req.userId);
     if (!user.vaultPassword) return res.status(400).json({ error: 'Vault not set' });
@@ -185,6 +207,7 @@ app.post('/api/admin/reset-password', auth, async (req, res) => {
     
     const hash = await bcrypt.hash(newPassword, 10);
     await User.findByIdAndUpdate(user._id, { password: hash });
+    await ResetRequest.updateMany({ username, status: 'pending' }, { status: 'resolved', resolvedAt: new Date() });
     res.json({ ok: true });
 });
 
@@ -206,7 +229,15 @@ app.get('/api/admin/stats', auth, async (req, res) => {
     
     const users = await User.find({}, { username: 1, createdAt: 1, lastActive: 1, _id: 0 }).sort({ createdAt: -1 });
     
-    res.json({ totalUsers, activeToday, activeWeek, activeMonth, newToday, newWeek, users });
+    const pendingRequests = await ResetRequest.find({ status: 'pending' }).sort({ createdAt: -1 });
+    
+    res.json({ totalUsers, activeToday, activeWeek, activeMonth, newToday, newWeek, users, pendingRequests });
+});
+
+app.get('/api/admin/reset-requests', auth, async (req, res) => {
+    if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
+    const requests = await ResetRequest.find({ status: 'pending' }).sort({ createdAt: -1 });
+    res.json({ requests });
 });
 
 // ====== Fallback ======
