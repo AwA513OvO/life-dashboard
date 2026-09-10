@@ -237,7 +237,7 @@ async function saveData() {
 // ====== Todos ======
 function renderTodos() {
     const list = document.getElementById('todo-list');
-    let items = data.todos;
+    let items = data.todos.filter(t => !t.archived);
     if (currentFilter === 'active') items = items.filter(t => !t.done);
     if (currentFilter === 'done') items = items.filter(t => t.done);
     list.innerHTML = items.length === 0 ? '<div class="empty-tip">暂无待办事项</div>' : items.map(t => `
@@ -247,7 +247,7 @@ function renderTodos() {
             <div class="todo-meta"><span>${t.category}</span><span>${t.priority==='high'?'高':t.priority==='mid'?'中':'低'}</span></div></div>
             <span class="todo-del" onclick="delTodo('${t.id}')">✕</span>
         </div>`).join('');
-    const total = data.todos.length, done = data.todos.filter(t => t.done).length;
+    const total = items.length, done = items.filter(t => t.done).length;
     document.getElementById('todo-progress').style.width = total ? (done/total*100)+'%' : '0%';
     document.getElementById('todo-progress-text').textContent = `${done} / ${total}`;
 }
@@ -259,7 +259,17 @@ function addTodo() {
     saveData(); renderTodos();
 }
 function toggleTodo(id) { const t = data.todos.find(t => t.id === id); if (t) { t.done = !t.done; t.completedAt = t.done ? new Date().toISOString() : null; saveData(); renderTodos(); } }
-function delTodo(id) { data.todos = data.todos.filter(t => t.id !== id); saveData(); renderTodos(); }
+function delTodo(id) {
+    const t = data.todos.find(t => t.id === id);
+    if (!t) return;
+    if (t.done) {
+        t.archived = true;
+        t.archivedAt = new Date().toISOString();
+    } else {
+        data.todos = data.todos.filter(t => t.id !== id);
+    }
+    saveData(); renderTodos();
+}
 
 // ====== Timers ======
 function renderTimers() {
@@ -344,24 +354,33 @@ function getStatsRangeStart(range) {
 }
 function renderStats() {
     const start = getStatsRangeStart(currentStatsRange); const startMs = start.getTime();
-    const todosInRange = data.todos.filter(t => new Date(t.createdAt) >= startMs);
-    const doneInRange = todosInRange.filter(t => t.done);
+    // 统计包含所有待办（包括已归档的），按完成时间判断是否在统计区间内
+    const completedInRange = data.todos.filter(t => t.done && t.completedAt && new Date(t.completedAt) >= startMs);
+    const totalInRange = data.todos.filter(t => {
+        // 在区间内创建的，或在区间内完成的，都算入
+        const created = new Date(t.createdAt) >= startMs;
+        const completed = t.done && t.completedAt && new Date(t.completedAt) >= startMs;
+        return created || completed;
+    });
+    const doneInRange = completedInRange;
     const diariesInRange = data.diaries.filter(d => new Date(d.date) >= startMs);
     const goalsDone = data.goals.filter(g => g.progress >= 100).length;
+    const completionRate = totalInRange.length ? Math.round(doneInRange.length / totalInRange.length * 100) + '%' : '0%';
     document.getElementById('stats-cards').innerHTML = `
-        <div class="stat-card"><div class="num">${todosInRange.length}</div><div class="label">待办总数</div></div>
+        <div class="stat-card"><div class="num">${totalInRange.length}</div><div class="label">待办总数</div></div>
         <div class="stat-card success"><div class="num">${doneInRange.length}</div><div class="label">已完成</div></div>
-        <div class="stat-card warning"><div class="num">${todosInRange.length-doneInRange.length}</div><div class="label">待完成</div></div>
-        <div class="stat-card"><div class="num">${todosInRange.length?Math.round(doneInRange.length/todosInRange.length*100)+'%':'0%'}</div><div class="label">完成率</div></div>`;
-    const cats = {}; todosInRange.forEach(t => cats[t.category]=(cats[t.category]||0)+1);
+        <div class="stat-card warning"><div class="num">${Math.max(0, totalInRange.length - doneInRange.length)}</div><div class="label">待完成</div></div>
+        <div class="stat-card"><div class="num">${completionRate}</div><div class="label">完成率</div></div>`;
+    // 分类统计
+    const cats = {}; totalInRange.forEach(t => cats[t.category]=(cats[t.category]||0)+1);
     const catColors = {'工作':'#6366f1','生活':'#22c55e','学习':'#f59e0b','其他':'#888'};
     document.getElementById('stats-category').innerHTML = '<h3>分类统计</h3>' + (Object.keys(cats).length ? Object.entries(cats).map(([name,count]) =>
-        `<div class="stat-row"><span class="name">${name}</span><div class="bar"><div class="bar-fill" style="width:${count/todosInRange.length*100}%;background:${catColors[name]||'#888'}"></div></div><span class="val">${count}</span></div>`).join('') : '<div class="empty-tip">暂无数据</div>');
-    const pris = {high:0,mid:0,low:0}; todosInRange.forEach(t => pris[t.priority]++);
+        `<div class="stat-row"><span class="name">${name}</span><div class="bar"><div class="bar-fill" style="width:${count/totalInRange.length*100}%;background:${catColors[name]||'#888'}"></div></div><span class="val">${count}</span></div>`).join('') : '<div class="empty-tip">暂无数据</div>');
+    const pris = {high:0,mid:0,low:0}; totalInRange.forEach(t => pris[t.priority]++);
     document.getElementById('stats-priority').innerHTML = `<h3>优先级分布</h3>
-        <div class="stat-row"><span class="name">高</span><div class="bar"><div class="bar-fill" style="width:${todosInRange.length?pris.high/todosInRange.length*100:0}%;background:var(--danger)"></div></div><span class="val">${pris.high}</span></div>
-        <div class="stat-row"><span class="name">中</span><div class="bar"><div class="bar-fill" style="width:${todosInRange.length?pris.mid/todosInRange.length*100:0}%;background:var(--warning)"></div></div><span class="val">${pris.mid}</span></div>
-        <div class="stat-row"><span class="name">低</span><div class="bar"><div class="bar-fill" style="width:${todosInRange.length?pris.low/todosInRange.length*100:0}%;background:var(--success)"></div></div><span class="val">${pris.low}</span></div>`;
+        <div class="stat-row"><span class="name">高</span><div class="bar"><div class="bar-fill" style="width:${totalInRange.length?pris.high/totalInRange.length*100:0}%;background:var(--danger)"></div></div><span class="val">${pris.high}</span></div>
+        <div class="stat-row"><span class="name">中</span><div class="bar"><div class="bar-fill" style="width:${totalInRange.length?pris.mid/totalInRange.length*100:0}%;background:var(--warning)"></div></div><span class="val">${pris.mid}</span></div>
+        <div class="stat-row"><span class="name">低</span><div class="bar"><div class="bar-fill" style="width:${totalInRange.length?pris.low/totalInRange.length*100:0}%;background:var(--success)"></div></div><span class="val">${pris.low}</span></div>`;
     const avgProgress = data.goals.length ? Math.round(data.goals.reduce((s,g)=>s+g.progress,0)/data.goals.length) : 0;
     document.getElementById('stats-goals').innerHTML = `<h3>目标概览</h3>
         <div class="stat-row"><span class="name">已完成</span><div class="bar"><div class="bar-fill" style="width:${data.goals.length?goalsDone/data.goals.length*100:0}%;background:var(--success)"></div></div><span class="val">${goalsDone}</span></div>
@@ -550,12 +569,13 @@ async function renderAdmin() {
         }
         
         const now = Date.now();
-        document.getElementById('admin-user-list').innerHTML = stats.users.map(u => {
+        const sortedUsers = [...stats.users].sort((a, b) => new Date(b.lastActive) - new Date(a.lastActive));
+        document.getElementById('admin-user-list').innerHTML = sortedUsers.map(u => {
             const active = (now - new Date(u.lastActive).getTime()) < 86400000;
             return `<div class="admin-user-row">
                 <span class="admin-username">${u.username}</span>
                 <span class="admin-status ${active?'active':'inactive'}">${active?'活跃':'不活跃'}</span>
-                <span class="admin-time">注册: ${fmtDate(u.createdAt)}</span>
+                <span class="admin-time">上次: ${relTime(u.lastActive)}</span>
                 <button class="admin-reset-btn" onclick="adminResetPassword('${u.username}')">批准重置</button></div>`;
         }).join('');
     } catch(e) {}
