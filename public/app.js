@@ -4,6 +4,7 @@ let data = { todos: [], timers: [], goals: [], countdowns: [], diaries: [], vaul
 let currentFilter = 'all';
 let currentTimerFilter = 'all';
 let currentStatsRange = 'day';
+let currentStatsDetailType = null;
 let currentVaultFilter = 'all';
 let editingDiaryId = null;
 let editingVaultId = null;
@@ -374,7 +375,139 @@ function getStatsRangeStart(range) {
     else if (range === 'year') { start.setMonth(0,1); start.setHours(0,0,0,0); }
     return start;
 }
+
+function getStatsGroupKey(dateStr, range) {
+    const d = new Date(dateStr);
+    if (range === 'day') return null;
+    if (range === 'week') {
+        const days = ['周日','周一','周二','周三','周四','周五','周六'];
+        return days[d.getDay()] + ' ' + (d.getMonth()+1) + '/' + d.getDate();
+    }
+    if (range === 'month') return '第' + Math.ceil(d.getDate() / 7) + '周';
+    if (range === 'year') return (d.getMonth()+1) + '月';
+    return null;
+}
+
+function formatStatsTime(timeStr, range, isDateOnly) {
+    const d = new Date(timeStr);
+    if (isDateOnly) {
+        if (range === 'day') return '当天';
+        if (range === 'week') { const days = ['周日','周一','周二','周三','周四','周五','周六']; return days[d.getDay()]; }
+        if (range === 'month') return (d.getMonth()+1) + '/' + d.getDate();
+        if (range === 'year') return (d.getMonth()+1) + '月' + d.getDate() + '日';
+        return '';
+    }
+    const hh = d.getHours().toString().padStart(2,'0');
+    const mm = d.getMinutes().toString().padStart(2,'0');
+    if (range === 'day') return hh + ':' + mm;
+    if (range === 'week') { const days = ['周日','周一','周二','周三','周四','周五','周六']; return days[d.getDay()] + ' ' + hh + ':' + mm; }
+    if (range === 'month') return (d.getMonth()+1) + '/' + d.getDate() + ' ' + hh + ':' + mm;
+    if (range === 'year') return (d.getMonth()+1) + '月' + d.getDate() + '日';
+    return '';
+}
+
+function sortGroupKeys(keys, range) {
+    if (range === 'week') {
+        const dayOrder = {'周日':0,'周一':1,'周二':2,'周三':3,'周四':4,'周五':5,'周六':6};
+        return keys.sort((a,b) => (dayOrder[a.split(' ')[0]]||0) - (dayOrder[b.split(' ')[0]]||0));
+    }
+    if (range === 'month' || range === 'year') {
+        return keys.sort((a,b) => {
+            const na = a.match(/\d+/), nb = b.match(/\d+/);
+            return (na?parseInt(na[0]):0) - (nb?parseInt(nb[0]):0);
+        });
+    }
+    return keys;
+}
+
+function renderStatsRecord(r, range) {
+    let badge = '';
+    if (r.status === 'done') badge = '<span class="stats-record-badge done">✓</span>';
+    else if (r.status === 'pending') badge = '<span class="stats-record-badge pending">○</span>';
+    else if (r.emoji) badge = '<span class="stats-record-badge">' + r.emoji + '</span>';
+    return '<div class="stats-record">' + badge +
+        '<span class="stats-record-content">' + r.content + '</span>' +
+        '<span class="stats-record-time">' + formatStatsTime(r.time, range, r.isDateOnly) + '</span>' +
+        '</div>';
+}
+
+function toggleStatsGroup(headerEl) {
+    const body = headerEl.nextElementSibling;
+    const arrow = headerEl.querySelector('.stats-detail-arrow');
+    body.classList.toggle('hidden');
+    arrow.textContent = body.classList.contains('hidden') ? '▶' : '▼';
+}
+
+function renderStatsDetail(type) {
+    const detailEl = document.getElementById('stats-details');
+    if (currentStatsDetailType === type) {
+        currentStatsDetailType = null;
+        detailEl.classList.add('hidden');
+        detailEl.innerHTML = '';
+        return;
+    }
+    currentStatsDetailType = type;
+    detailEl.classList.remove('hidden');
+
+    const start = getStatsRangeStart(currentStatsRange); const startMs = start.getTime();
+    let records = [];
+
+    if (type === 'all' || type === 'done' || type === 'pending') {
+        let todos = data.todos.filter(t => {
+            const created = new Date(t.createdAt) >= startMs;
+            const completed = t.done && t.completedAt && new Date(t.completedAt) >= startMs;
+            return created || completed;
+        });
+        if (type === 'done') todos = todos.filter(t => t.done);
+        if (type === 'pending') todos = todos.filter(t => !t.done);
+        records = todos.map(t => ({
+            content: t.text,
+            time: t.done && t.completedAt ? t.completedAt : t.createdAt,
+            status: t.done ? 'done' : 'pending'
+        }));
+    } else if (type === 'diaries') {
+        records = data.diaries.filter(d => new Date(d.date) >= startMs).map(d => ({
+            content: d.title + (d.content ? ' · ' + d.content.slice(0,40) : ''),
+            time: d.date,
+            emoji: d.emoji,
+            isDateOnly: true
+        }));
+    }
+
+    records.sort((a,b) => new Date(b.time) - new Date(a.time));
+
+    if (records.length === 0) {
+        detailEl.innerHTML = '<div class="empty-tip">暂无记录</div>';
+        return;
+    }
+
+    if (currentStatsRange === 'day') {
+        detailEl.innerHTML = '<div class="stats-detail-list">' + records.map(r => renderStatsRecord(r, currentStatsRange)).join('') + '</div>';
+    } else {
+        const groups = {};
+        records.forEach(r => {
+            const key = getStatsGroupKey(r.time, currentStatsRange) || '其他';
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(r);
+        });
+        const sortedKeys = sortGroupKeys(Object.keys(groups), currentStatsRange);
+        detailEl.innerHTML = sortedKeys.map(key =>
+            '<div class="stats-detail-group">' +
+            '<div class="stats-detail-group-header" onclick="toggleStatsGroup(this)">' +
+            '<span>' + key + '</span>' +
+            '<span class="stats-detail-count">' + groups[key].length + '条</span>' +
+            '<span class="stats-detail-arrow">▼</span></div>' +
+            '<div class="stats-detail-group-body">' + groups[key].map(r => renderStatsRecord(r, currentStatsRange)).join('') + '</div>' +
+            '</div>'
+        ).join('');
+    }
+}
+
 function renderStats() {
+    currentStatsDetailType = null;
+    const detailEl = document.getElementById('stats-details');
+    if (detailEl) { detailEl.classList.add('hidden'); detailEl.innerHTML = ''; }
+
     const start = getStatsRangeStart(currentStatsRange); const startMs = start.getTime();
     const completedInRange = data.todos.filter(t => t.done && t.completedAt && new Date(t.completedAt) >= startMs);
     const createdInRange = data.todos.filter(t => !t.archived && new Date(t.createdAt) >= startMs);
@@ -388,9 +521,9 @@ function renderStats() {
     const goalsDone = data.goals.filter(g => g.progress >= 100).length;
     const completionRate = totalInRange.length ? Math.round(doneInRange.length / totalInRange.length * 100) + '%' : '0%';
     document.getElementById('stats-cards').innerHTML = `
-        <div class="stat-card"><div class="num">${totalInRange.length}</div><div class="label">待办总数</div></div>
-        <div class="stat-card success"><div class="num">${doneInRange.length}</div><div class="label">已完成</div></div>
-        <div class="stat-card warning"><div class="num">${Math.max(0, totalInRange.length - doneInRange.length)}</div><div class="label">待完成</div></div>
+        <div class="stat-card clickable" onclick="renderStatsDetail('all')"><div class="num">${totalInRange.length}</div><div class="label">待办总数</div></div>
+        <div class="stat-card success clickable" onclick="renderStatsDetail('done')"><div class="num">${doneInRange.length}</div><div class="label">已完成</div></div>
+        <div class="stat-card warning clickable" onclick="renderStatsDetail('pending')"><div class="num">${Math.max(0, totalInRange.length - doneInRange.length)}</div><div class="label">待完成</div></div>
         <div class="stat-card"><div class="num">${completionRate}</div><div class="label">完成率</div></div>`;
     const cats = {}; totalInRange.forEach(t => cats[t.category]=(cats[t.category]||0)+1);
     const catColors = {'工作':'#6366f1','生活':'#22c55e','学习':'#f59e0b','其他':'#888'};
@@ -407,7 +540,7 @@ function renderStats() {
         <div class="stat-row"><span class="name">总数</span><div class="bar"><div class="bar-fill" style="width:100%;background:var(--border)"></div></div><span class="val">${data.goals.length}</span></div>
         <div class="stat-row"><span class="name">平均进度</span><div class="bar"><div class="bar-fill" style="width:${avgProgress}%;background:var(--primary)"></div></div><span class="val">${avgProgress}%</span></div>`;
     document.getElementById('stats-diaries').innerHTML = `<h3>日记统计</h3>
-        <div class="stat-row"><span class="name">已写</span><div class="bar"><div class="bar-fill" style="width:100%;background:var(--primary-light)"></div></div><span class="val">${diariesInRange.length}</span></div>`;
+        <div class="stat-row clickable" onclick="renderStatsDetail('diaries')"><span class="name">已写</span><div class="bar"><div class="bar-fill" style="width:100%;background:var(--primary-light)"></div></div><span class="val">${diariesInRange.length} ▸</span></div>`;
 }
 
 // ====== Diary ======
