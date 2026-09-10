@@ -582,17 +582,25 @@ async function renderAdmin() {
         const sortedUsers = [...stats.users].sort((a, b) => new Date(b.lastActive) - new Date(a.lastActive));
         document.getElementById('admin-user-list').innerHTML = sortedUsers.map(u => {
             const active = (now - new Date(u.lastActive).getTime()) < 86400000;
-            const adminBadge = u.isSuperAdmin ? '<span class="admin-badge super">超级管理员</span>' : (u.isAdmin ? '<span class="admin-badge">管理员</span>' : '');
+            const roleBadge = u.isSuperAdmin ? '<span class="admin-badge super">超级管理员</span>' : (u.isAdmin ? '<span class="admin-badge">管理员</span>' : '<span class="admin-badge user">普通用户</span>');
             const adminBtn = u.isSuperAdmin ? '' : (u.isAdmin
-                ? `<button class="admin-toggle-btn" onclick="setAdmin('${u.username}', false)">取消管理员</button>`
-                : `<button class="admin-toggle-btn" onclick="setAdmin('${u.username}', true)">设为管理员</button>`);
-            return `<div class="admin-user-row">
-                <span class="admin-username">${u.username}</span>
-                ${adminBadge}
-                <span class="admin-status ${active?'active':'inactive'}">${active?'活跃':'不活跃'}</span>
-                <span class="admin-time">上次: ${relTime(u.lastActive)}</span>
-                <button class="admin-reset-btn" onclick="adminResetPassword('${u.username}')">批准重置</button>
-                ${adminBtn}</div>`;
+                ? `<button class="admin-action-btn remove" onclick="setAdmin('${u.username}', false)">取消管理员</button>`
+                : `<button class="admin-action-btn add" onclick="setAdmin('${u.username}', true)">设为管理员</button>`);
+            return `<div class="admin-user-card">
+                <div class="admin-user-top">
+                    <span class="admin-user-avatar">👤</span>
+                    <span class="admin-username">${u.username}</span>
+                    ${roleBadge}
+                    <span class="admin-status ${active?'active':'inactive'}">${active?'活跃':'不活跃'}</span>
+                </div>
+                <div class="admin-user-bottom">
+                    <span class="admin-time">上次活跃: ${relTime(u.lastActive)}</span>
+                    <div class="admin-user-actions">
+                        <button class="admin-action-btn reset" onclick="adminResetPassword('${u.username}')">批准重置</button>
+                        ${adminBtn}
+                    </div>
+                </div>
+            </div>`;
         }).join('');
     } catch(e) {}
 }
