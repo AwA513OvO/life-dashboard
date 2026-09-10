@@ -9,12 +9,12 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
 </head>
-<body data-theme="indigo">
+<body>
     <!-- 登录/注册页 -->
     <div id="auth-page" class="auth-page">
         <div class="auth-card">
             <h1>生活管理面板</h1>
-            <p class="auth-subtitle">多用户 · 数据隔离 · 保密柜加密 · 多主题</p>
+            <p class="auth-subtitle">多用户 · 数据隔离 · 保密柜加密</p>
             <div class="auth-tabs">
                 <button class="auth-tab active" data-mode="login">登录</button>
                 <button class="auth-tab" data-mode="register">注册</button>
@@ -36,17 +36,6 @@
             <button id="auth-submit" class="auth-btn">登录</button>
             <p id="auth-error" class="auth-error"></p>
             <button id="forgot-password-link" class="forgot-link">忘记密码？</button>
-            <div class="theme-picker-auth">
-                <span class="theme-label">主题预览：</span>
-                <div class="theme-dots">
-                    <button class="theme-dot" data-theme="indigo" title="靛蓝" style="background:#6366f1"></button>
-                    <button class="theme-dot" data-theme="morandi" title="莫兰迪" style="background:#a8b5a0"></button>
-                    <button class="theme-dot" data-theme="ocean" title="海洋" style="background:#0ea5e9"></button>
-                    <button class="theme-dot" data-theme="sunset" title="日落" style="background:#f97316"></button>
-                    <button class="theme-dot" data-theme="forest" title="森林" style="background:#16a34a"></button>
-                    <button class="theme-dot" data-theme="rose" title="玫瑰" style="background:#e11d48"></button>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -91,41 +80,7 @@
     <div id="app" class="hidden">
         <div class="top-bar">
             <span id="current-user" class="user-badge"></span>
-            <div class="top-bar-right">
-                <button id="theme-btn" class="theme-btn" title="切换主题">🎨</button>
-                <button id="logout-btn" class="logout-btn">退出</button>
-            </div>
-        </div>
-
-        <!-- 主题选择面板 -->
-        <div id="theme-panel" class="theme-panel hidden">
-            <h3>选择主题</h3>
-            <div class="theme-grid">
-                <button class="theme-option" data-theme="indigo">
-                    <div class="theme-preview" style="background:linear-gradient(135deg,#6366f1,#818cf8)"></div>
-                    <span>靛蓝</span>
-                </button>
-                <button class="theme-option" data-theme="morandi">
-                    <div class="theme-preview" style="background:linear-gradient(135deg,#a8b5a0,#c4b8a8)"></div>
-                    <span>莫兰迪</span>
-                </button>
-                <button class="theme-option" data-theme="ocean">
-                    <div class="theme-preview" style="background:linear-gradient(135deg,#0ea5e9,#38bdf8)"></div>
-                    <span>海洋</span>
-                </button>
-                <button class="theme-option" data-theme="sunset">
-                    <div class="theme-preview" style="background:linear-gradient(135deg,#f97316,#fb923c)"></div>
-                    <span>日落</span>
-                </button>
-                <button class="theme-option" data-theme="forest">
-                    <div class="theme-preview" style="background:linear-gradient(135deg,#16a34a,#4ade80)"></div>
-                    <span>森林</span>
-                </button>
-                <button class="theme-option" data-theme="rose">
-                    <div class="theme-preview" style="background:linear-gradient(135deg,#e11d48,#fb7185)"></div>
-                    <span>玫瑰</span>
-                </button>
-            </div>
+            <button id="logout-btn" class="logout-btn">退出</button>
         </div>
 
         <!-- 待办清单 -->
@@ -320,4 +275,49 @@
                 <h2 id="diary-modal-title">写日记</h2>
                 <button id="diary-modal-close">✕</button>
             </div>
-            <input type="text" id="diary-edit-title" placeholder="标题" class="modal-input
+            <input type="text" id="diary-edit-title" placeholder="标题" class="modal-input" />
+            <input type="date" id="diary-edit-date" class="modal-input" />
+            <select id="diary-edit-mood" class="modal-input">
+                <option>😊</option><option>😄</option><option>😢</option><option>😡</option>
+                <option>😨</option><option>😴</option><option>🤔</option><option>😎</option>
+                <option>🥳</option><option>😭</option><option>🤗</option><option>😐</option>
+            </select>
+            <textarea id="diary-edit-content" placeholder="今天发生了什么..." class="modal-textarea"></textarea>
+            <div class="modal-actions">
+                <button id="diary-to-vault" class="modal-vault-btn">🔒 移入保密柜</button>
+                <button id="diary-save-btn" class="modal-save-btn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 保密柜内容编辑弹窗 -->
+    <div class="modal hidden" id="vault-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>编辑保密内容</h2>
+                <button id="vault-modal-close">✕</button>
+            </div>
+            <input type="text" id="vault-edit-title" placeholder="标题" class="modal-input" />
+            <textarea id="vault-edit-content" placeholder="内容..." class="modal-textarea"></textarea>
+            <div class="modal-actions">
+                <button id="vault-delete-btn" class="modal-del-btn">删除</button>
+                <button id="vault-edit-save-btn" class="modal-save-btn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部导航 -->
+    <nav class="bottom-nav">
+        <button class="nav-btn active" data-page="todos"><span class="nav-icon">✓</span><span>待办</span></button>
+        <button class="nav-btn" data-page="timers"><span class="nav-icon">⏱</span><span>计时</span></button>
+        <button class="nav-btn" data-page="goals"><span class="nav-icon">🎯</span><span>目标</span></button>
+        <button class="nav-btn" data-page="countdowns"><span class="nav-icon">📅</span><span>倒数日</span></button>
+        <button class="nav-btn" data-page="stats"><span class="nav-icon">📊</span><span>统计</span></button>
+        <button class="nav-btn" data-page="diary"><span class="nav-icon">📖</span><span>日记</span></button>
+        <button class="nav-btn" data-page="vault"><span class="nav-icon">🔒</span><span>保密柜</span></button>
+        <button class="nav-btn nav-admin hidden" data-page="admin"><span class="nav-icon">⚙️</span><span>管理</span></button>
+    </nav>
+
+    <script src="app.js"></script>
+</body>
+</html>
