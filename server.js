@@ -59,7 +59,7 @@ function auth(req, res, next) {
         req.userId = decoded.userId;
         req.username = decoded.username;
         req.isAdmin = decoded.isAdmin;
-        req.isSuperAdmin = decoded.isSuperAdmin || false;
+        req.isSuperAdmin = decoded.isSuperAdmin;
         User.findByIdAndUpdate(decoded.userId, { lastActive: new Date() }).exec();
         next();
     } catch(e) {
@@ -82,15 +82,13 @@ app.post('/api/register', async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
     const answerHash = await bcrypt.hash(securityAnswer.trim().toLowerCase(), 10);
     const user = await User.create({
-        username, password: hash,
-        isAdmin: userCount === 0,
-        isSuperAdmin: userCount === 0,
+        username, password: hash, isAdmin: userCount === 0, isSuperAdmin: userCount === 0,
         securityQuestion, securityAnswer: answerHash
     });
     
     const token = jwt.sign({ userId: user._id, username, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin }, JWT_SECRET);
     await Data.create({ userId: user._id });
-    res.json({ token, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin });
+    res.json({ token, isAdmin: user.isAdmin });
 });
 
 app.post('/api/login', async (req, res) => {
@@ -211,21 +209,19 @@ app.post('/api/data', auth, async (req, res) => {
 });
 
 // ====== Admin Routes ======
-// 超级管理员：设别人为管理员
 app.post('/api/admin/set-admin', auth, async (req, res) => {
-    if (!req.isSuperAdmin) return res.status(403).json({ error: 'Super admin only' });
-    const { username, isAdmin } = req.body;
-    if (!username) return res.status(400).json({ error: 'Need username' });
+    if (!req.isSuperAdmin) return res.status(403).json({ error: '超级管理员才能操作' });
+    const { username, makeAdmin } = req.body;
+    if (!username) return res.status(400).json({ error: 'Missing username' });
     
     const user = await User.findOne({ username });
     if (!user) return res.status(400).json({ error: 'User not found' });
-    if (user.isSuperAdmin) return res.status(400).json({ error: 'Cannot modify super admin' });
+    if (user.isSuperAdmin) return res.status(400).json({ error: '不能修改超级管理员' });
     
-    await User.findByIdAndUpdate(user._id, { isAdmin: !!isAdmin });
+    await User.findByIdAndUpdate(user._id, { isAdmin: makeAdmin });
     res.json({ ok: true });
 });
 
-// 管理员：批准密码重置
 app.post('/api/admin/approve-reset', auth, async (req, res) => {
     if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
     const { username } = req.body;
@@ -239,7 +235,6 @@ app.post('/api/admin/approve-reset', auth, async (req, res) => {
     res.json({ ok: true });
 });
 
-// 管理员：统计信息
 app.get('/api/admin/stats', auth, async (req, res) => {
     if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
     
