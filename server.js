@@ -23,6 +23,7 @@ const userSchema = new mongoose.Schema({
     securityQuestion: { type: String, default: null },
     securityAnswer: { type: String, default: null },
     isAdmin: { type: Boolean, default: false },
+    isSuperAdmin: { type: Boolean, default: false },
     resetApproved: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now },
     lastActive: { type: Date, default: Date.now }
@@ -35,7 +36,8 @@ const dataSchema = new mongoose.Schema({
     goals: { type: Array, default: [] },
     countdowns: { type: Array, default: [] },
     diaries: { type: Array, default: [] },
-    vault: { type: Array, default: [] }
+    vault: { type: Array, default: [] },
+    theme: { type: String, default: 'indigo' }
 });
 
 const resetRequestSchema = new mongoose.Schema({
@@ -58,6 +60,7 @@ function auth(req, res, next) {
         req.userId = decoded.userId;
         req.username = decoded.username;
         req.isAdmin = decoded.isAdmin;
+        req.isSuperAdmin = decoded.isSuperAdmin || false;
         User.findByIdAndUpdate(decoded.userId, { lastActive: new Date() }).exec();
         next();
     } catch(e) {
@@ -80,13 +83,15 @@ app.post('/api/register', async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
     const answerHash = await bcrypt.hash(securityAnswer.trim().toLowerCase(), 10);
     const user = await User.create({
-        username, password: hash, isAdmin: userCount === 0,
+        username, password: hash,
+        isAdmin: userCount === 0,
+        isSuperAdmin: userCount === 0,
         securityQuestion, securityAnswer: answerHash
     });
     
-    const token = jwt.sign({ userId: user._id, username, isAdmin: user.isAdmin }, JWT_SECRET);
+    const token = jwt.sign({ userId: user._id, username, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin }, JWT_SECRET);
     await Data.create({ userId: user._id });
-    res.json({ token, isAdmin: user.isAdmin });
+    res.json({ token, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin });
 });
 
 app.post('/api/login', async (req, res) => {
@@ -97,13 +102,13 @@ app.post('/api/login', async (req, res) => {
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(400).json({ error: 'Wrong password' });
     
-    const token = jwt.sign({ userId: user._id, username, isAdmin: user.isAdmin }, JWT_SECRET);
-    res.json({ token, isAdmin: user.isAdmin, hasVault: !!user.vaultPassword });
+    const token = jwt.sign({ userId: user._id, username, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin }, JWT_SECRET);
+    res.json({ token, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin, hasVault: !!user.vaultPassword });
 });
 
 app.get('/api/me', auth, async (req, res) => {
     const user = await User.findById(req.userId);
-    res.json({ username: user.username, isAdmin: user.isAdmin, hasVault: !!user.vaultPassword });
+    res.json({ username: user.username, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin, hasVault: !!user.vaultPassword });
 });
 
 // ====== Forgot Password (Self-service) ======
@@ -193,20 +198,43 @@ app.get('/api/data', auth, async (req, res) => {
     if (!d) d = await Data.create({ userId: req.userId });
     res.json({
         todos: d.todos, timers: d.timers, goals: d.goals,
-        countdowns: d.countdowns, diaries: d.diaries, vault: d.vault
+        countdowns: d.countdowns, diaries: d.diaries, vault: d.vault,
+        theme: d.theme || 'indigo'
     });
 });
 
 app.post('/api/data', auth, async (req, res) => {
     const update = {};
-    for (const key of ['todos', 'timers', 'goals', 'countdowns', 'diaries', 'vault']) {
+    for (const key of ['todos', 'timers', 'goals', 'countdowns', 'diaries', 'vault', 'theme']) {
         if (req.body[key] !== undefined) update[key] = req.body[key];
     }
     await Data.findOneAndUpdate({ userId: req.userId }, update, { upsert: true });
     res.json({ ok: true });
 });
 
+app.post('/api/theme', auth, async (req, res) => {
+    const { theme } = req.body;
+    if (!theme) return res.status(400).json({ error: 'Need theme' });
+    await Data.findOneAndUpdate({ userId: req.userId }, { theme }, { upsert: true });
+    res.json({ ok: true });
+});
+
 // ====== Admin Routes ======
+// 超级管理员：设别人为管理员
+app.post('/api/admin/set-admin', auth, async (req, res) => {
+    if (!req.isSuperAdmin) return res.status(403).json({ error: 'Super admin only' });
+    const { username, isAdmin } = req.body;
+    if (!username) return res.status(400).json({ error: 'Need username' });
+    
+    const user = await User.findOne({ username });
+    if (!user) return res.status(400).json({ error: 'User not found' });
+    if (user.isSuperAdmin) return res.status(400).json({ error: 'Cannot modify super admin' });
+    
+    await User.findByIdAndUpdate(user._id, { isAdmin: !!isAdmin });
+    res.json({ ok: true });
+});
+
+// 管理员：批准密码重置
 app.post('/api/admin/approve-reset', auth, async (req, res) => {
     if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
     const { username } = req.body;
@@ -220,6 +248,7 @@ app.post('/api/admin/approve-reset', auth, async (req, res) => {
     res.json({ ok: true });
 });
 
+// 管理员：统计信息
 app.get('/api/admin/stats', auth, async (req, res) => {
     if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
     
@@ -236,7 +265,7 @@ app.get('/api/admin/stats', auth, async (req, res) => {
     const newToday = await User.countDocuments({ createdAt: { $gte: dayAgo } });
     const newWeek = await User.countDocuments({ createdAt: { $gte: weekAgo } });
     
-    const users = await User.find({}, { username: 1, createdAt: 1, lastActive: 1, _id: 0 }).sort({ lastActive: -1 });
+    const users = await User.find({}, { username: 1, createdAt: 1, lastActive: 1, isAdmin: 1, isSuperAdmin: 1, _id: 0 }).sort({ lastActive: -1 });
     
     const pendingRequests = await ResetRequest.find({ status: 'pending' }).sort({ createdAt: -1 });
     
