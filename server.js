@@ -36,8 +36,7 @@ const dataSchema = new mongoose.Schema({
     goals: { type: Array, default: [] },
     countdowns: { type: Array, default: [] },
     diaries: { type: Array, default: [] },
-    vault: { type: Array, default: [] },
-    theme: { type: String, default: 'indigo' }
+    vault: { type: Array, default: [] }
 });
 
 const resetRequestSchema = new mongoose.Schema({
@@ -198,24 +197,16 @@ app.get('/api/data', auth, async (req, res) => {
     if (!d) d = await Data.create({ userId: req.userId });
     res.json({
         todos: d.todos, timers: d.timers, goals: d.goals,
-        countdowns: d.countdowns, diaries: d.diaries, vault: d.vault,
-        theme: d.theme || 'indigo'
+        countdowns: d.countdowns, diaries: d.diaries, vault: d.vault
     });
 });
 
 app.post('/api/data', auth, async (req, res) => {
     const update = {};
-    for (const key of ['todos', 'timers', 'goals', 'countdowns', 'diaries', 'vault', 'theme']) {
+    for (const key of ['todos', 'timers', 'goals', 'countdowns', 'diaries', 'vault']) {
         if (req.body[key] !== undefined) update[key] = req.body[key];
     }
     await Data.findOneAndUpdate({ userId: req.userId }, update, { upsert: true });
-    res.json({ ok: true });
-});
-
-app.post('/api/theme', auth, async (req, res) => {
-    const { theme } = req.body;
-    if (!theme) return res.status(400).json({ error: 'Need theme' });
-    await Data.findOneAndUpdate({ userId: req.userId }, { theme }, { upsert: true });
     res.json({ ok: true });
 });
 
