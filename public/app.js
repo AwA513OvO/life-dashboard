@@ -42,7 +42,7 @@ async function checkAuth() {
         document.getElementById('current-user').textContent = '👤 ' + me.username;
         isAdmin = me.isAdmin;
         isSuperAdmin = me.isSuperAdmin;
-        if (isAdmin) document.querySelector('.nav-admin').classList.remove('hidden');
+        if (isAdmin) document.getElementById('admin-btn').classList.remove('hidden');
         await loadData();
         document.getElementById('auth-page').classList.add('hidden');
         document.getElementById('app').classList.remove('hidden');
@@ -58,6 +58,7 @@ function showAuth() {
 function logout() {
     token = '';
     localStorage.removeItem('token');
+    document.getElementById('admin-btn').classList.add('hidden');
     showAuth();
 }
 
@@ -112,6 +113,14 @@ document.getElementById('auth-submit').addEventListener('click', async () => {
 document.getElementById('auth-password').addEventListener('keypress', e => { if (e.key === 'Enter') document.getElementById('auth-submit').click(); });
 document.getElementById('auth-password-confirm').addEventListener('keypress', e => { if (e.key === 'Enter') document.getElementById('auth-submit').click(); });
 document.getElementById('logout-btn').addEventListener('click', logout);
+
+// ====== Admin gear icon in top bar ======
+document.getElementById('admin-btn').addEventListener('click', () => {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+    document.getElementById('page-admin').classList.remove('hidden');
+    renderAdmin();
+});
 
 // ====== Forgot Password ======
 let forgotUsername = '';
@@ -618,11 +627,28 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
         document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
         document.getElementById('page-' + btn.dataset.page).classList.remove('hidden');
         if (btn.dataset.page === 'stats') renderStats();
-        if (btn.dataset.page === 'vault') renderVaultState();
-        if (btn.dataset.page === 'admin') renderAdmin();
+        if (btn.dataset.page === 'goals') { renderGoals(); renderCountdowns(); }
+        if (btn.dataset.page === 'diary') { renderDiaries(); renderVaultState(); }
     });
 });
 
+// ====== Sub Navigation (icon-based switching within combined pages) ======
+document.querySelectorAll('.sub-nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const page = btn.closest('.page');
+        page.querySelectorAll('.sub-nav-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        page.querySelectorAll('.sub-content').forEach(c => c.classList.add('hidden'));
+        const target = document.getElementById('sub-' + btn.dataset.sub);
+        if (target) target.classList.remove('hidden');
+        if (btn.dataset.sub === 'goals') renderGoals();
+        if (btn.dataset.sub === 'countdowns') renderCountdowns();
+        if (btn.dataset.sub === 'diary') renderDiaries();
+        if (btn.dataset.sub === 'vault') renderVaultState();
+    });
+});
+
+// ====== Filter Tabs ======
 document.querySelectorAll('#todo-filters .filter-tab').forEach(tab => {
     tab.addEventListener('click', () => { document.querySelectorAll('#todo-filters .filter-tab').forEach(t => t.classList.remove('active')); tab.classList.add('active'); currentFilter = tab.dataset.filter; renderTodos(); });
 });
