@@ -180,7 +180,7 @@ document.getElementById('forgot-done').addEventListener('click', () => {
     document.getElementById('auth-username').focus();
 });
 
-// ====== Request Admin Reset ======
+// ====== Request Admin Reset (when security question also forgotten) ======
 document.getElementById('forgot-request-admin').addEventListener('click', async () => {
     const username = document.getElementById('forgot-username').value.trim();
     if (!username) { document.getElementById('forgot-step1-error').textContent = '请先输入用户名'; return; }
@@ -229,12 +229,12 @@ function adminResetPassword(username) {
     document.getElementById('admin-reset-modal').classList.remove('hidden');
 }
 
-// ====== Admin: Set Admin ======
 async function setAdmin(username, makeAdmin) {
+    if (!confirm(`确认${makeAdmin ? '将' : '取消'}「${username}」的管理员权限？`)) return;
     try {
-        const res = await api('/api/admin/set-admin', 'POST', { username, isAdmin: makeAdmin });
+        const res = await api('/api/admin/set-admin', 'POST', { username, makeAdmin });
         if (res.error) { alert(res.error); return; }
-        alert(makeAdmin ? '已将 ' + username + ' 设为管理员' : '已撤销 ' + username + ' 的管理员权限');
+        alert(makeAdmin ? `已将「${username}」设为管理员` : `已取消「${username}」的管理员权限`);
         renderAdmin();
     } catch(e) { alert('操作失败'); }
 }
@@ -368,6 +368,7 @@ function getStatsRangeStart(range) {
 function renderStats() {
     const start = getStatsRangeStart(currentStatsRange); const startMs = start.getTime();
     const completedInRange = data.todos.filter(t => t.done && t.completedAt && new Date(t.completedAt) >= startMs);
+    const createdInRange = data.todos.filter(t => !t.archived && new Date(t.createdAt) >= startMs);
     const totalInRange = data.todos.filter(t => {
         const created = new Date(t.createdAt) >= startMs;
         const completed = t.done && t.completedAt && new Date(t.completedAt) >= startMs;
@@ -581,22 +582,14 @@ async function renderAdmin() {
         const sortedUsers = [...stats.users].sort((a, b) => new Date(b.lastActive) - new Date(a.lastActive));
         document.getElementById('admin-user-list').innerHTML = sortedUsers.map(u => {
             const active = (now - new Date(u.lastActive).getTime()) < 86400000;
-            let statusBadge = `<span class="admin-status ${active?'active':'inactive'}">${active?'活跃':'不活跃'}</span>`;
-            if (u.isSuperAdmin) statusBadge = `<span class="admin-status superadmin">超级管理员</span>`;
-            else if (u.isAdmin) statusBadge = `<span class="admin-status admin">管理员</span>`;
-            
-            let adminBtn = '';
-            if (isSuperAdmin && !u.isSuperAdmin) {
-                if (u.isAdmin) {
-                    adminBtn = `<button class="admin-setadmin-btn" onclick="setAdmin('${u.username}',false)">撤销管理员</button>`;
-                } else {
-                    adminBtn = `<button class="admin-setadmin-btn" onclick="setAdmin('${u.username}',true)">设为管理员</button>`;
-                }
-            }
-            
+            const adminBadge = u.isSuperAdmin ? '<span class="admin-badge super">超级管理员</span>' : (u.isAdmin ? '<span class="admin-badge">管理员</span>' : '');
+            const adminBtn = u.isSuperAdmin ? '' : (u.isAdmin
+                ? `<button class="admin-toggle-btn" onclick="setAdmin('${u.username}', false)">取消管理员</button>`
+                : `<button class="admin-toggle-btn" onclick="setAdmin('${u.username}', true)">设为管理员</button>`);
             return `<div class="admin-user-row">
                 <span class="admin-username">${u.username}</span>
-                ${statusBadge}
+                ${adminBadge}
+                <span class="admin-status ${active?'active':'inactive'}">${active?'活跃':'不活跃'}</span>
                 <span class="admin-time">上次: ${relTime(u.lastActive)}</span>
                 <button class="admin-reset-btn" onclick="adminResetPassword('${u.username}')">批准重置</button>
                 ${adminBtn}</div>`;
