@@ -236,7 +236,7 @@ app.get('/api/admin/stats', auth, async (req, res) => {
     const newToday = await User.countDocuments({ createdAt: { $gte: dayAgo } });
     const newWeek = await User.countDocuments({ createdAt: { $gte: weekAgo } });
     
-    const users = await User.find({}, { username: 1, createdAt: 1, lastActive: 1, _id: 0 }).sort({ createdAt: -1 });
+    const users = await User.find({}, { username: 1, createdAt: 1, lastActive: 1, _id: 0 }).sort({ lastActive: -1 });
     
     const pendingRequests = await ResetRequest.find({ status: 'pending' }).sort({ createdAt: -1 });
     
