@@ -11,44 +11,6 @@ let vaultUnlocked = false;
 let vaultKey = '';
 let isAdmin = false;
 let isSuperAdmin = false;
-let currentTheme = localStorage.getItem('theme') || 'indigo';
-
-// ====== Theme ======
-function applyTheme(theme) {
-    document.body.setAttribute('data-theme', theme);
-    currentTheme = theme;
-    localStorage.setItem('theme', theme);
-    document.querySelectorAll('.theme-option').forEach(opt => {
-        opt.classList.toggle('active', opt.dataset.theme === theme);
-    });
-    document.querySelectorAll('.theme-dot').forEach(dot => {
-        dot.style.border = dot.dataset.theme === theme ? '2px solid #fff' : '2px solid var(--border)';
-    });
-    // Update theme-color meta
-    const themeColors = { indigo: '#6366f1', morandi: '#a8b5a0', ocean: '#0ea5e9', sunset: '#f97316', forest: '#16a34a', rose: '#e11d48' };
-    document.querySelector('meta[name="theme-color"]').setAttribute('content', themeColors[theme] || '#6366f1');
-}
-applyTheme(currentTheme);
-
-// Theme dots (auth page)
-document.querySelectorAll('.theme-dot').forEach(dot => {
-    dot.addEventListener('click', () => applyTheme(dot.dataset.theme));
-});
-
-// Theme button (top bar)
-document.getElementById('theme-btn').addEventListener('click', () => {
-    const panel = document.getElementById('theme-panel');
-    panel.classList.toggle('hidden');
-});
-document.querySelectorAll('.theme-option').forEach(opt => {
-    opt.addEventListener('click', async () => {
-        applyTheme(opt.dataset.theme);
-        document.getElementById('theme-panel').classList.add('hidden');
-        if (token) {
-            try { await api('/api/theme', 'POST', { theme: opt.dataset.theme }); } catch(e) {}
-        }
-    });
-});
 
 // ====== API Helper ======
 async function api(url, method, body) {
@@ -279,12 +241,7 @@ async function setAdmin(username, makeAdmin) {
 
 // ====== Data ======
 async function loadData() {
-    try {
-        data = await api('/api/data');
-        if (data.theme && data.theme !== currentTheme) {
-            applyTheme(data.theme);
-        }
-    } catch(e) {}
+    try { data = await api('/api/data'); } catch(e) {}
 }
 async function saveData() {
     try { await api('/api/data', 'POST', data); } catch(e) {}
