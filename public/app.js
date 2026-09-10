@@ -10,6 +10,45 @@ let editingVaultId = null;
 let vaultUnlocked = false;
 let vaultKey = '';
 let isAdmin = false;
+let isSuperAdmin = false;
+let currentTheme = localStorage.getItem('theme') || 'indigo';
+
+// ====== Theme ======
+function applyTheme(theme) {
+    document.body.setAttribute('data-theme', theme);
+    currentTheme = theme;
+    localStorage.setItem('theme', theme);
+    document.querySelectorAll('.theme-option').forEach(opt => {
+        opt.classList.toggle('active', opt.dataset.theme === theme);
+    });
+    document.querySelectorAll('.theme-dot').forEach(dot => {
+        dot.style.border = dot.dataset.theme === theme ? '2px solid #fff' : '2px solid var(--border)';
+    });
+    // Update theme-color meta
+    const themeColors = { indigo: '#6366f1', morandi: '#a8b5a0', ocean: '#0ea5e9', sunset: '#f97316', forest: '#16a34a', rose: '#e11d48' };
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', themeColors[theme] || '#6366f1');
+}
+applyTheme(currentTheme);
+
+// Theme dots (auth page)
+document.querySelectorAll('.theme-dot').forEach(dot => {
+    dot.addEventListener('click', () => applyTheme(dot.dataset.theme));
+});
+
+// Theme button (top bar)
+document.getElementById('theme-btn').addEventListener('click', () => {
+    const panel = document.getElementById('theme-panel');
+    panel.classList.toggle('hidden');
+});
+document.querySelectorAll('.theme-option').forEach(opt => {
+    opt.addEventListener('click', async () => {
+        applyTheme(opt.dataset.theme);
+        document.getElementById('theme-panel').classList.add('hidden');
+        if (token) {
+            try { await api('/api/theme', 'POST', { theme: opt.dataset.theme }); } catch(e) {}
+        }
+    });
+});
 
 // ====== API Helper ======
 async function api(url, method, body) {
@@ -40,6 +79,7 @@ async function checkAuth() {
         const me = await api('/api/me');
         document.getElementById('current-user').textContent = '👤 ' + me.username;
         isAdmin = me.isAdmin;
+        isSuperAdmin = me.isSuperAdmin;
         if (isAdmin) document.querySelector('.nav-admin').classList.remove('hidden');
         await loadData();
         document.getElementById('auth-page').classList.add('hidden');
@@ -100,6 +140,7 @@ document.getElementById('auth-submit').addEventListener('click', async () => {
         document.getElementById('auth-security-answer').value = '';
         document.getElementById('auth-error').textContent = '';
         isAdmin = res.isAdmin;
+        isSuperAdmin = res.isSuperAdmin;
         await checkAuth();
     } catch(e) {
         document.getElementById('auth-error').textContent = authMode === 'login' ? '用户名或密码错误' : '用户名已存在或信息无效';
@@ -177,7 +218,7 @@ document.getElementById('forgot-done').addEventListener('click', () => {
     document.getElementById('auth-username').focus();
 });
 
-// ====== Request Admin Reset (when security question also forgotten) ======
+// ====== Request Admin Reset ======
 document.getElementById('forgot-request-admin').addEventListener('click', async () => {
     const username = document.getElementById('forgot-username').value.trim();
     if (!username) { document.getElementById('forgot-step1-error').textContent = '请先输入用户名'; return; }
@@ -226,9 +267,24 @@ function adminResetPassword(username) {
     document.getElementById('admin-reset-modal').classList.remove('hidden');
 }
 
+// ====== Admin: Set Admin ======
+async function setAdmin(username, makeAdmin) {
+    try {
+        const res = await api('/api/admin/set-admin', 'POST', { username, isAdmin: makeAdmin });
+        if (res.error) { alert(res.error); return; }
+        alert(makeAdmin ? '已将 ' + username + ' 设为管理员' : '已撤销 ' + username + ' 的管理员权限');
+        renderAdmin();
+    } catch(e) { alert('操作失败'); }
+}
+
 // ====== Data ======
 async function loadData() {
-    try { data = await api('/api/data'); } catch(e) {}
+    try {
+        data = await api('/api/data');
+        if (data.theme && data.theme !== currentTheme) {
+            applyTheme(data.theme);
+        }
+    } catch(e) {}
 }
 async function saveData() {
     try { await api('/api/data', 'POST', data); } catch(e) {}
@@ -354,10 +410,8 @@ function getStatsRangeStart(range) {
 }
 function renderStats() {
     const start = getStatsRangeStart(currentStatsRange); const startMs = start.getTime();
-    // 统计包含所有待办（包括已归档的），按完成时间判断是否在统计区间内
     const completedInRange = data.todos.filter(t => t.done && t.completedAt && new Date(t.completedAt) >= startMs);
     const totalInRange = data.todos.filter(t => {
-        // 在区间内创建的，或在区间内完成的，都算入
         const created = new Date(t.createdAt) >= startMs;
         const completed = t.done && t.completedAt && new Date(t.completedAt) >= startMs;
         return created || completed;
@@ -371,7 +425,6 @@ function renderStats() {
         <div class="stat-card success"><div class="num">${doneInRange.length}</div><div class="label">已完成</div></div>
         <div class="stat-card warning"><div class="num">${Math.max(0, totalInRange.length - doneInRange.length)}</div><div class="label">待完成</div></div>
         <div class="stat-card"><div class="num">${completionRate}</div><div class="label">完成率</div></div>`;
-    // 分类统计
     const cats = {}; totalInRange.forEach(t => cats[t.category]=(cats[t.category]||0)+1);
     const catColors = {'工作':'#6366f1','生活':'#22c55e','学习':'#f59e0b','其他':'#888'};
     document.getElementById('stats-category').innerHTML = '<h3>分类统计</h3>' + (Object.keys(cats).length ? Object.entries(cats).map(([name,count]) =>
@@ -553,7 +606,6 @@ async function renderAdmin() {
             <div class="stat-card warning"><div class="num">${stats.activeWeek}</div><div class="label">本周活跃</div></div>
             <div class="stat-card"><div class="num">${stats.newToday}</div><div class="label">今日新增</div></div>`;
         
-        // Render pending password reset requests
         const reqList = document.getElementById('admin-requests-list');
         if (stats.pendingRequests && stats.pendingRequests.length > 0) {
             reqList.innerHTML = stats.pendingRequests.map(r => `
@@ -572,11 +624,25 @@ async function renderAdmin() {
         const sortedUsers = [...stats.users].sort((a, b) => new Date(b.lastActive) - new Date(a.lastActive));
         document.getElementById('admin-user-list').innerHTML = sortedUsers.map(u => {
             const active = (now - new Date(u.lastActive).getTime()) < 86400000;
+            let statusBadge = `<span class="admin-status ${active?'active':'inactive'}">${active?'活跃':'不活跃'}</span>`;
+            if (u.isSuperAdmin) statusBadge = `<span class="admin-status superadmin">超级管理员</span>`;
+            else if (u.isAdmin) statusBadge = `<span class="admin-status admin">管理员</span>`;
+            
+            let adminBtn = '';
+            if (isSuperAdmin && !u.isSuperAdmin) {
+                if (u.isAdmin) {
+                    adminBtn = `<button class="admin-setadmin-btn" onclick="setAdmin('${u.username}',false)">撤销管理员</button>`;
+                } else {
+                    adminBtn = `<button class="admin-setadmin-btn" onclick="setAdmin('${u.username}',true)">设为管理员</button>`;
+                }
+            }
+            
             return `<div class="admin-user-row">
                 <span class="admin-username">${u.username}</span>
-                <span class="admin-status ${active?'active':'inactive'}">${active?'活跃':'不活跃'}</span>
+                ${statusBadge}
                 <span class="admin-time">上次: ${relTime(u.lastActive)}</span>
-                <button class="admin-reset-btn" onclick="adminResetPassword('${u.username}')">批准重置</button></div>`;
+                <button class="admin-reset-btn" onclick="adminResetPassword('${u.username}')">批准重置</button>
+                ${adminBtn}</div>`;
         }).join('');
     } catch(e) {}
 }
