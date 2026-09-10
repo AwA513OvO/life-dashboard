@@ -13,8 +13,6 @@ const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('he
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-mongoose.connect(MONGO_URL).then(() => console.log('MongoDB connected')).catch(e => console.error('MongoDB error:', e));
-
 // ====== Models ======
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
@@ -49,6 +47,16 @@ const resetRequestSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 const Data = mongoose.model('Data', dataSchema);
 const ResetRequest = mongoose.model('ResetRequest', resetRequestSchema);
+
+// 一次性迁移：确保第一个注册的用户是超级管理员
+mongoose.connect(MONGO_URL).then(async () => {
+    console.log('MongoDB connected');
+    const firstUser = await User.findOne().sort({ createdAt: 1 });
+    if (firstUser && firstUser.isAdmin && !firstUser.isSuperAdmin) {
+        await User.findByIdAndUpdate(firstUser._id, { isSuperAdmin: true });
+        console.log('Migrated first user to super admin:', firstUser.username);
+    }
+}).catch(e => console.error('MongoDB error:', e));
 
 // ====== Auth Middleware ======
 function auth(req, res, next) {
