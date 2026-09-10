@@ -70,7 +70,7 @@
             <div id="forgot-step4" class="hidden">
                 <div class="forgot-success-icon">📨</div>
                 <p>已向管理员发送重置请求</p>
-                <p style="font-size:13px;color:var(--text-dim);margin-top:8px">管理员批准后，你可以在这里重新设置新密码。请留意管理员的回复通知。</p>
+                <p style="font-size:13px;color:var(--text-dim);margin-top:8px">管理员处理后，你可以用新密码登录。请通过其他方式联系管理员告知你的新密码。</p>
                 <button id="forgot-request-done" class="auth-btn">好的</button>
             </div>
         </div>
@@ -80,7 +80,10 @@
     <div id="app" class="hidden">
         <div class="top-bar">
             <span id="current-user" class="user-badge"></span>
-            <button id="logout-btn" class="logout-btn">退出</button>
+            <div class="top-bar-right">
+                <button id="admin-btn" class="top-bar-icon hidden">⚙️</button>
+                <button id="logout-btn" class="logout-btn">退出</button>
+            </div>
         </div>
 
         <!-- 待办清单 -->
@@ -122,28 +125,30 @@
             </div>
         </div>
 
-        <!-- 目标 -->
+        <!-- 目标 + 倒数日 -->
         <div class="page hidden" id="page-goals">
-            <div class="header"><h1>目标管理</h1></div>
-            <div class="list" id="goal-list"></div>
-            <div class="add-bar">
-                <input type="text" id="goal-input" placeholder="目标标题" />
-                <input type="text" id="goal-desc" placeholder="描述（可选）" />
-                <input type="date" id="goal-deadline" />
-                <button id="goal-add-btn">+</button>
+            <div class="sub-nav">
+                <button class="sub-nav-btn active" data-sub="goals"><span class="sub-nav-icon">🎯</span><span>目标</span></button>
+                <button class="sub-nav-btn" data-sub="countdowns"><span class="sub-nav-icon">📅</span><span>倒数日</span></button>
             </div>
-        </div>
-
-        <!-- 倒数日 -->
-        <div class="page hidden" id="page-countdowns">
-            <div class="header"><h1>倒数日</h1></div>
-            <div class="list" id="countdown-list"></div>
-            <div class="add-bar">
-                <input type="text" id="cd-input" placeholder="事件名称" />
-                <input type="date" id="cd-date" />
-                <select id="cd-mode"><option value="until">距今还有</option><option value="since">已经过了</option></select>
-                <input type="text" id="cd-emoji" placeholder="emoji" value="📅" style="width:50px" />
-                <button id="cd-add-btn">+</button>
+            <div class="sub-content" id="sub-goals">
+                <div class="list" id="goal-list"></div>
+                <div class="add-bar">
+                    <input type="text" id="goal-input" placeholder="目标标题" />
+                    <input type="text" id="goal-desc" placeholder="描述（可选）" />
+                    <input type="date" id="goal-deadline" />
+                    <button id="goal-add-btn">+</button>
+                </div>
+            </div>
+            <div class="sub-content hidden" id="sub-countdowns">
+                <div class="list" id="countdown-list"></div>
+                <div class="add-bar">
+                    <input type="text" id="cd-input" placeholder="事件名称" />
+                    <input type="date" id="cd-date" />
+                    <select id="cd-mode"><option value="until">距今还有</option><option value="since">已经过了</option></select>
+                    <input type="text" id="cd-emoji" placeholder="emoji" value="📅" style="width:50px" />
+                    <button id="cd-add-btn">+</button>
+                </div>
             </div>
         </div>
 
@@ -163,54 +168,56 @@
             <div class="stats-section" id="stats-diaries"></div>
         </div>
 
-        <!-- 日记 -->
+        <!-- 日记 + 保密柜 -->
         <div class="page hidden" id="page-diary">
-            <div class="header"><h1>日记</h1></div>
-            <div class="list" id="diary-list"></div>
-            <div class="add-bar">
-                <input type="text" id="diary-title" placeholder="标题" />
-                <input type="date" id="diary-date" />
-                <select id="diary-mood">
-                    <option>😊</option><option>😄</option><option>😢</option><option>😡</option>
-                    <option>😨</option><option>😴</option><option>🤔</option><option>😎</option>
-                    <option>🥳</option><option>😭</option><option>🤗</option><option>😐</option>
-                </select>
-                <button id="diary-add-btn">+</button>
+            <div class="sub-nav">
+                <button class="sub-nav-btn active" data-sub="diary"><span class="sub-nav-icon">📖</span><span>日记</span></button>
+                <button class="sub-nav-btn" data-sub="vault"><span class="sub-nav-icon">🔒</span><span>保密柜</span></button>
             </div>
-        </div>
-
-        <!-- 保密柜 -->
-        <div class="page hidden" id="page-vault">
-            <div class="header"><h1>🔒 保密柜</h1></div>
-            <div id="vault-setup" class="vault-section hidden">
-                <p class="vault-tip">设置一个独立密码,用于加密和保护你的私密内容。内容在浏览器端加密后存储,服务器只能看到密文。</p>
-                <input type="password" id="vault-setup-password" placeholder="设置保密柜密码" class="auth-input" />
-                <input type="password" id="vault-setup-confirm" placeholder="确认密码" class="auth-input" />
-                <button id="vault-setup-btn" class="auth-btn">设置密码</button>
-                <p id="vault-setup-error" class="auth-error"></p>
-            </div>
-            <div id="vault-locked" class="vault-section hidden">
-                <div class="vault-lock-icon">🔒</div>
-                <p>输入保密柜密码以查看加密内容</p>
-                <input type="password" id="vault-unlock-password" placeholder="保密柜密码" class="auth-input" />
-                <button id="vault-unlock-btn" class="auth-btn">解锁</button>
-                <p id="vault-unlock-error" class="auth-error"></p>
-                <button id="vault-forgot-link" class="forgot-link">忘记保密柜密码？</button>
-            </div>
-            <div id="vault-unlocked" class="vault-section hidden">
-                <div class="vault-tabs">
-                    <button class="vault-tab active" data-vault-filter="all">全部</button>
-                    <button class="vault-tab" data-vault-filter="diary">日记</button>
-                    <button class="vault-tab" data-vault-filter="todo">待办</button>
-                    <button class="vault-tab" data-vault-filter="note">便签</button>
-                </div>
-                <div class="list" id="vault-list"></div>
+            <div class="sub-content" id="sub-diary">
+                <div class="list" id="diary-list"></div>
                 <div class="add-bar">
-                    <select id="vault-type"><option value="note">便签</option><option value="diary">日记</option><option value="todo">待办</option></select>
-                    <input type="text" id="vault-title" placeholder="标题" />
-                    <button id="vault-add-btn">+ 添加</button>
+                    <input type="text" id="diary-title" placeholder="标题" />
+                    <input type="date" id="diary-date" />
+                    <select id="diary-mood">
+                        <option>😊</option><option>😄</option><option>😢</option><option>😡</option>
+                        <option>😨</option><option>😴</option><option>🤔</option><option>😎</option>
+                        <option>🥳</option><option>😭</option><option>🤗</option><option>😐</option>
+                    </select>
+                    <button id="diary-add-btn">+</button>
                 </div>
-                <button id="vault-lock-btn" class="vault-lockback-btn">🔒 重新锁定</button>
+            </div>
+            <div class="sub-content hidden" id="sub-vault">
+                <div id="vault-setup" class="vault-section hidden">
+                    <p class="vault-tip">设置一个独立密码,用于加密和保护你的私密内容。内容在浏览器端加密后存储,服务器只能看到密文。</p>
+                    <input type="password" id="vault-setup-password" placeholder="设置保密柜密码" class="auth-input" />
+                    <input type="password" id="vault-setup-confirm" placeholder="确认密码" class="auth-input" />
+                    <button id="vault-setup-btn" class="auth-btn">设置密码</button>
+                    <p id="vault-setup-error" class="auth-error"></p>
+                </div>
+                <div id="vault-locked" class="vault-section hidden">
+                    <div class="vault-lock-icon">🔒</div>
+                    <p>输入保密柜密码以查看加密内容</p>
+                    <input type="password" id="vault-unlock-password" placeholder="保密柜密码" class="auth-input" />
+                    <button id="vault-unlock-btn" class="auth-btn">解锁</button>
+                    <p id="vault-unlock-error" class="auth-error"></p>
+                    <button id="vault-forgot-link" class="forgot-link">忘记保密柜密码？</button>
+                </div>
+                <div id="vault-unlocked" class="vault-section hidden">
+                    <div class="vault-tabs">
+                        <button class="vault-tab active" data-vault-filter="all">全部</button>
+                        <button class="vault-tab" data-vault-filter="diary">日记</button>
+                        <button class="vault-tab" data-vault-filter="todo">待办</button>
+                        <button class="vault-tab" data-vault-filter="note">便签</button>
+                    </div>
+                    <div class="list" id="vault-list"></div>
+                    <div class="add-bar">
+                        <select id="vault-type"><option value="note">便签</option><option value="diary">日记</option><option value="todo">待办</option></select>
+                        <input type="text" id="vault-title" placeholder="标题" />
+                        <button id="vault-add-btn">+ 添加</button>
+                    </div>
+                    <button id="vault-lock-btn" class="vault-lockback-btn">🔒 重新锁定</button>
+                </div>
             </div>
         </div>
 
@@ -311,11 +318,8 @@
         <button class="nav-btn active" data-page="todos"><span class="nav-icon">✓</span><span>待办</span></button>
         <button class="nav-btn" data-page="timers"><span class="nav-icon">⏱</span><span>计时</span></button>
         <button class="nav-btn" data-page="goals"><span class="nav-icon">🎯</span><span>目标</span></button>
-        <button class="nav-btn" data-page="countdowns"><span class="nav-icon">📅</span><span>倒数日</span></button>
-        <button class="nav-btn" data-page="stats"><span class="nav-icon">📊</span><span>统计</span></button>
         <button class="nav-btn" data-page="diary"><span class="nav-icon">📖</span><span>日记</span></button>
-        <button class="nav-btn" data-page="vault"><span class="nav-icon">🔒</span><span>保密柜</span></button>
-        <button class="nav-btn nav-admin hidden" data-page="admin"><span class="nav-icon">⚙️</span><span>管理</span></button>
+        <button class="nav-btn" data-page="stats"><span class="nav-icon">📊</span><span>统计</span></button>
     </nav>
 
     <script src="app.js"></script>
