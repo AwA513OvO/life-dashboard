@@ -59,16 +59,19 @@ mongoose.connect(MONGO_URL).then(async () => {
 }).catch(e => console.error('MongoDB error:', e));
 
 // ====== Auth Middleware ======
-function auth(req, res, next) {
+async function auth(req, res, next) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ error: 'No token' });
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
-        req.userId = decoded.userId;
-        req.username = decoded.username;
-        req.isAdmin = decoded.isAdmin;
-        req.isSuperAdmin = decoded.isSuperAdmin;
-        User.findByIdAndUpdate(decoded.userId, { lastActive: new Date() }).exec();
+        const user = await User.findById(decoded.userId);
+        if (!user) return res.status(401).json({ error: 'User not found' });
+        req.userId = user._id;
+        req.username = user.username;
+        req.isAdmin = user.isAdmin;
+        req.isSuperAdmin = user.isSuperAdmin;
+        user.lastActive = new Date();
+        await user.save();
         next();
     } catch(e) {
         res.status(401).json({ error: 'Invalid token' });
