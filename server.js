@@ -81,8 +81,11 @@ async function auth(req, res, next) {
 // ====== Auth Routes ======
 app.post('/api/register', async (req, res) => {
     const { username, password, securityQuestion, securityAnswer } = req.body;
-    if (!username || !password) return res.status(400).json({ error: 'Missing fields' });
-    if (username.length < 2 || password.length < 4) return res.status(400).json({ error: 'Too short' });
+        if (!username || !password) return res.status(400).json({ error: 'Missing fields' });
+    if (username.length < 2) return res.status(400).json({ error: 'Username too short' });
+    if (password.length < 4 || password.length > 8) return res.status(400).json({ error: 'Password must be 4-8 characters' });
+    if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password))
+        return res.status(400).json({ error: 'Password must contain letters and numbers' });
     if (!securityQuestion || !securityAnswer || securityAnswer.trim().length < 1)
         return res.status(400).json({ error: 'Need security Q&A' });
     
