@@ -389,8 +389,10 @@ function delTodo(id) {
 }
 
 // ====== Timers ======
+let timerPageVisible = false;
 function renderTimers() {
     const list = document.getElementById('timer-list');
+    if (!list || !timerPageVisible) return;
     let items = data.timers;
     if (currentTimerFilter !== 'all') items = items.filter(t => t.direction === currentTimerFilter);
     if (items.length === 0) { list.innerHTML = '<div class="empty-tip">暂无计时器</div>'; return; }
@@ -886,6 +888,8 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.classList.add('active');
         document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
         document.getElementById('page-' + btn.dataset.page).classList.remove('hidden');
+        timerPageVisible = (btn.dataset.page === 'timers');
+        if (timerPageVisible) renderTimers();
         if (btn.dataset.page === 'stats') renderStats();
         if (btn.dataset.page === 'goals') { renderGoals(); renderCountdowns(); }
         if (btn.dataset.page === 'diary') { renderDiaries(); renderVaultState(); }
