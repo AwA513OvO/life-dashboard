@@ -363,6 +363,300 @@ process.on('uncaughtException', (err) => {
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Life Dashboard v2 running at http://localhost:${PORT}`);
 });
+}).catch(e => {
+    console.error('MongoDB error:', e.message);
+    console.error('Server will start anyway - DB operations will retry automatically');
+});
+
+// 监听连接状态变化
+mongoose.connection.on('connected', () => { dbConnected = true; console.log('MongoDB reconnected'); });
+mongoose.connection.on('disconnected', () => { dbConnected = false; console.warn('MongoDB disconnected'); });
+mongoose.connection.on('reconnected', () => { dbConnected = true; console.log('MongoDB reconnected'); });
+
+// ====== Auth Middleware ======
+async function auth(req, res, next) {
+    try {
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) return res.status(401).json({ error: 'No token' });
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const user = await User.findById(decoded.userId);
+        if (!user) return res.status(401).json({ error: 'User not found' });
+        req.userId = user._id;
+        req.username = user.username;
+        req.isAdmin = user.isAdmin;
+        req.isSuperAdmin = user.isSuperAdmin;
+        user.lastActive = new Date();
+        await user.save();
+        next();
+    } catch(e) {
+        res.status(401).json({ error: 'Invalid token' });
+    }
+}
+
+// ====== Auth Routes ======
+app.post('/api/register', async (req, res) => {
+    try {
+        const { username, password, securityQuestion, securityAnswer } = req.body;
+        if (!username || !password) return res.status(400).json({ error: 'Missing fields' });
+        if (username.length < 2) return res.status(400).json({ error: 'Username too short' });
+        if (password.length < 4 || password.length > 8) return res.status(400).json({ error: 'Password must be 4-8 characters' });
+        if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password))
+            return res.status(400).json({ error: 'Password must contain letters and numbers' });
+        if (!securityQuestion || !securityAnswer || securityAnswer.trim().length < 1)
+            return res.status(400).json({ error: 'Need security Q&A' });
+        
+        const existing = await User.findOne({ username });
+        if (existing) return res.status(400).json({ error: 'Username exists' });
+        
+        const userCount = await User.countDocuments();
+        const hash = await bcrypt.hash(password, 10);
+        const answerHash = await bcrypt.hash(securityAnswer.trim().toLowerCase(), 10);
+        const user = await User.create({
+            username, password: hash, isAdmin: userCount === 0, isSuperAdmin: userCount === 0,
+            securityQuestion, securityAnswer: answerHash
+        });
+        
+        const token = jwt.sign({ userId: user._id, username, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin }, JWT_SECRET);
+        await Data.create({ userId: user._id });
+        res.json({ token, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin });
+    } catch(e) {
+        console.error('Register error:', e.message);
+        res.status(500).json({ error: 'Server error, please try again' });
+    }
+});
+
+app.post('/api/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        if (!username || !password) return res.status(400).json({ error: 'Missing fields' });
+        const user = await User.findOne({ username });
+        if (!user) return res.status(400).json({ error: 'User not found' });
+        
+        const match = await bcrypt.compare(password, user.password);
+        if (!match) return res.status(400).json({ error: 'Wrong password' });
+        
+        const token = jwt.sign({ userId: user._id, username, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin }, JWT_SECRET);
+        res.json({ token, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin, hasVault: !!user.vaultPassword });
+    } catch(e) {
+        console.error('Login error:', e.message);
+        res.status(500).json({ error: 'Server error, please try again' });
+    }
+});
+
+app.get('/api/me', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.userId);
+        res.json({ username: user.username, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin, hasVault: !!user.vaultPassword });
+    } catch(e) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// ====== Forgot Password (Self-service) ======
+app.post('/api/forgot-password/question', async (req, res) => {
+    try {
+        const { username } = req.body;
+        if (!username) return res.status(400).json({ error: 'Need username' });
+        const user = await User.findOne({ username });
+        if (!user) return res.status(400).json({ error: 'User not found' });
+        if (user.resetApproved) return res.json({ resetApproved: true });
+        if (!user.securityQuestion) return res.status(400).json({ error: 'No security question set' });
+        res.json({ securityQuestion: user.securityQuestion });
+    } catch(e) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/forgot-password/reset', async (req, res) => {
+    try {
+        const { username, securityAnswer, newPassword } = req.body;
+        if (!username || !newPassword) return res.status(400).json({ error: 'Missing fields' });
+        if (newPassword.length < 4) return res.status(400).json({ error: 'Password too short' });
+        
+        const user = await User.findOne({ username });
+        if (!user) return res.status(400).json({ error: 'User not found' });
+        
+        if (user.resetApproved) {
+            const hash = await bcrypt.hash(newPassword, 10);
+            await User.findByIdAndUpdate(user._id, { password: hash, resetApproved: false });
+            await ResetRequest.updateMany({ username, status: 'pending' }, { status: 'resolved', resolvedAt: new Date() });
+            return res.json({ ok: true });
+        }
+        
+        if (!securityAnswer) return res.status(400).json({ error: 'Missing answer' });
+        if (!user.securityAnswer) return res.status(400).json({ error: 'No security question set' });
+        
+        const match = await bcrypt.compare(securityAnswer.trim().toLowerCase(), user.securityAnswer);
+        if (!match) return res.status(400).json({ error: 'Wrong answer' });
+        
+        const hash = await bcrypt.hash(newPassword, 10);
+        await User.findByIdAndUpdate(user._id, { password: hash });
+        res.json({ ok: true });
+    } catch(e) {
+        console.error('Forgot reset error:', e.message);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// ====== Forgot Password - Request Admin Reset ======
+app.post('/api/forgot-password/request-admin', async (req, res) => {
+    try {
+        const { username } = req.body;
+        if (!username) return res.status(400).json({ error: 'Need username' });
+        
+        const user = await User.findOne({ username });
+        if (!user) return res.status(400).json({ error: 'User not found' });
+        
+        const existing = await ResetRequest.findOne({ username, status: 'pending' });
+        if (existing) return res.status(400).json({ error: 'Already requested' });
+        
+        await ResetRequest.create({ username, status: 'pending' });
+        res.json({ ok: true });
+    } catch(e) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// ====== Vault Password Routes ======
+app.post('/api/vault/setup', auth, async (req, res) => {
+    try {
+        const { vaultPassword } = req.body;
+        if (!vaultPassword || vaultPassword.length < 4) return res.status(400).json({ error: 'Too short' });
+        const hash = await bcrypt.hash(vaultPassword, 10);
+        await User.findByIdAndUpdate(req.userId, { vaultPassword: hash });
+        res.json({ ok: true });
+    } catch(e) { res.status(500).json({ error: 'Server error' }); }
+});
+
+app.post('/api/vault/verify', auth, async (req, res) => {
+    try {
+        const { vaultPassword } = req.body;
+        const user = await User.findById(req.userId);
+        if (!user.vaultPassword) return res.status(400).json({ error: 'Vault not set' });
+        const match = await bcrypt.compare(vaultPassword, user.vaultPassword);
+        if (!match) return res.status(400).json({ error: 'Wrong vault password' });
+        res.json({ ok: true });
+    } catch(e) { res.status(500).json({ error: 'Server error' }); }
+});
+
+app.post('/api/vault/reset', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.userId);
+        if (!user.vaultPassword) return res.status(400).json({ error: 'Vault not set' });
+        await User.findByIdAndUpdate(req.userId, { vaultPassword: null });
+        await Data.findOneAndUpdate({ userId: req.userId }, { vault: [] });
+        res.json({ ok: true });
+    } catch(e) { res.status(500).json({ error: 'Server error' }); }
+});
+
+// ====== Data Routes ======
+app.get('/api/data', auth, async (req, res) => {
+    try {
+        let d = await Data.findOne({ userId: req.userId });
+        if (!d) d = await Data.create({ userId: req.userId });
+        res.json({
+            todos: d.todos, timers: d.timers, goals: d.goals,
+            countdowns: d.countdowns, diaries: d.diaries, vault: d.vault
+        });
+    } catch(e) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/data', auth, async (req, res) => {
+    try {
+        const update = {};
+        for (const key of ['todos', 'timers', 'goals', 'countdowns', 'diaries', 'vault']) {
+            if (req.body[key] !== undefined) update[key] = req.body[key];
+        }
+        await Data.findOneAndUpdate({ userId: req.userId }, update, { upsert: true });
+        res.json({ ok: true });
+    } catch(e) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// ====== Admin Routes ======
+app.post('/api/admin/set-admin', auth, async (req, res) => {
+    try {
+        if (!req.isSuperAdmin) return res.status(403).json({ error: '超级管理员才能操作' });
+        const { username, makeAdmin } = req.body;
+        if (!username) return res.status(400).json({ error: 'Missing username' });
+        const user = await User.findOne({ username });
+        if (!user) return res.status(400).json({ error: 'User not found' });
+        if (user.isSuperAdmin) return res.status(400).json({ error: '不能修改超级管理员' });
+        await User.findByIdAndUpdate(user._id, { isAdmin: makeAdmin });
+        res.json({ ok: true });
+    } catch(e) { res.status(500).json({ error: 'Server error' }); }
+});
+
+app.post('/api/admin/approve-reset', auth, async (req, res) => {
+    try {
+        if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
+        const { username } = req.body;
+        if (!username) return res.status(400).json({ error: 'Missing username' });
+        const user = await User.findOne({ username });
+        if (!user) return res.status(400).json({ error: 'User not found' });
+        await User.findByIdAndUpdate(user._id, { resetApproved: true });
+        await ResetRequest.updateMany({ username, status: 'pending' }, { status: 'approved', resolvedAt: new Date() });
+        res.json({ ok: true });
+    } catch(e) { res.status(500).json({ error: 'Server error' }); }
+});
+
+app.get('/api/admin/stats', auth, async (req, res) => {
+    try {
+        if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
+        const totalUsers = await User.countDocuments();
+        const now = new Date();
+        const dayAgo = new Date(now.getTime() - 86400000);
+        const weekAgo = new Date(now.getTime() - 604800000);
+        const monthAgo = new Date(now.getTime() - 2592000000);
+        const activeToday = await User.countDocuments({ lastActive: { $gte: dayAgo } });
+        const activeWeek = await User.countDocuments({ lastActive: { $gte: weekAgo } });
+        const activeMonth = await User.countDocuments({ lastActive: { $gte: monthAgo } });
+        const newToday = await User.countDocuments({ createdAt: { $gte: dayAgo } });
+        const newWeek = await User.countDocuments({ createdAt: { $gte: weekAgo } });
+        const users = await User.find({}, { username: 1, createdAt: 1, lastActive: 1, isAdmin: 1, isSuperAdmin: 1, _id: 0 }).sort({ lastActive: -1 });
+        const pendingRequests = await ResetRequest.find({ status: 'pending' }).sort({ createdAt: -1 });
+        res.json({ totalUsers, activeToday, activeWeek, activeMonth, newToday, newWeek, users, pendingRequests });
+    } catch(e) { res.status(500).json({ error: 'Server error' }); }
+});
+
+app.get('/api/admin/reset-requests', auth, async (req, res) => {
+    try {
+        if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
+        const requests = await ResetRequest.find({ status: 'pending' }).sort({ createdAt: -1 });
+        res.json({ requests });
+    } catch(e) { res.status(500).json({ error: 'Server error' }); }
+});
+
+// ====== Health Check ======
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', db: dbConnected ? 'connected' : 'disconnected', uptime: process.uptime() });
+});
+
+// ====== Global Error Handler ======
+app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err.message);
+    res.status(500).json({ error: 'Server error' });
+});
+
+// ====== Fallback ======
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// ====== Graceful Shutdown ======
+process.on('unhandledRejection', (err) => {
+    console.error('Unhandled Rejection:', err.message);
+});
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err.message);
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Life Dashboard v2 running at http://localhost:${PORT}`);
+});
         req.isAdmin = user.isAdmin;
         req.isSuperAdmin = user.isSuperAdmin;
         user.lastActive = new Date();
