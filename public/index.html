@@ -83,7 +83,7 @@
         <div class="top-bar">
             <span id="current-user" class="user-badge">🐼 </span>
             <div class="top-bar-right">
-                <a id="guide-btn" class="top-bar-icon" href="life-dashboard-guide.html" target="_blank" title="使用指南">❓</a>
+                <button id="guide-btn" class="top-bar-icon" title="使用指南">❓</button>
                 <button id="admin-btn" class="top-bar-icon hidden">⚙️</button>
                 <button id="logout-btn" class="logout-btn">退出</button>
             </div>
@@ -315,6 +315,15 @@
                 <button id="vault-edit-save-btn" class="modal-save-btn">保存</button>
             </div>
         </div>
+    </div>
+
+    <!-- 使用指南弹窗 -->
+    <div class="guide-modal hidden" id="guide-modal">
+        <div class="guide-modal-header">
+            <h2>📖 使用指南</h2>
+            <button id="guide-modal-close">✕</button>
+        </div>
+        <iframe id="guide-iframe" src="life-dashboard-guide.html" class="guide-iframe"></iframe>
     </div>
 
     <!-- 底部导航 -->
