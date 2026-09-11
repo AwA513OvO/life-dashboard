@@ -73,7 +73,39 @@ document.querySelectorAll('.auth-tab').forEach(tab => {
         document.getElementById('auth-error').textContent = '';
         document.getElementById('auth-password-confirm').classList.toggle('hidden', authMode !== 'register');
         document.getElementById('security-fields').classList.toggle('hidden', authMode !== 'register');
+        document.getElementById('password-rules').classList.toggle('hidden', authMode !== 'register');
+        if (authMode === 'register') validatePasswordRules();
     });
+});
+
+function validatePasswordRules() {
+    const pw = document.getElementById('auth-password').value;
+    const rulesEl = document.getElementById('password-rules');
+    if (!pw) {
+        rulesEl.classList.remove('valid');
+        rulesEl.textContent = '密码需4-8位，包含字母和数字';
+        return false;
+    }
+    const lengthOk = pw.length >= 4 && pw.length <= 8;
+    const hasLetter = /[a-zA-Z]/.test(pw);
+    const hasNumber = /[0-9]/.test(pw);
+    const valid = lengthOk && hasLetter && hasNumber;
+    if (valid) {
+        rulesEl.classList.add('valid');
+        rulesEl.textContent = '✓ 密码格式正确';
+    } else {
+        rulesEl.classList.remove('valid');
+        const parts = [];
+        if (!lengthOk) parts.push('4-8位');
+        if (!hasLetter) parts.push('字母');
+        if (!hasNumber) parts.push('数字');
+        rulesEl.textContent = '密码需包含：' + parts.join('、');
+    }
+    return valid;
+}
+
+document.getElementById('auth-password').addEventListener('input', () => {
+    if (authMode === 'register') validatePasswordRules();
 });
 
 document.getElementById('auth-submit').addEventListener('click', async () => {
@@ -83,6 +115,7 @@ document.getElementById('auth-submit').addEventListener('click', async () => {
     
     let body = { username, password };
     if (authMode === 'register') {
+        if (!validatePasswordRules()) { document.getElementById('auth-error').textContent = '密码格式不符合要求'; return; }
         const pwConfirm = document.getElementById('auth-password-confirm').value;
         if (!pwConfirm) { document.getElementById('auth-error').textContent = '请再次输入密码确认'; return; }
         if (password !== pwConfirm) { document.getElementById('auth-error').textContent = '两次密码不一致，请重新输入'; return; }
@@ -544,6 +577,13 @@ function renderStats() {
 }
 
 // ====== Diary ======
+function toggleDiaryMonth(headerEl) {
+    const body = headerEl.nextElementSibling;
+    const arrow = headerEl.querySelector('.diary-month-arrow');
+    body.classList.toggle('hidden');
+    arrow.textContent = body.classList.contains('hidden') ? '▶' : '▼';
+}
+
 function renderDiaries() {
     const list = document.getElementById('diary-list');
     if (data.diaries.length === 0) { list.innerHTML = '<div class="empty-tip">暂无日记</div>'; return; }
@@ -565,9 +605,12 @@ function renderDiaries() {
         return (yb*12+mb) - (ya*12+ma);
     });
     
-    list.innerHTML = monthKeys.map(key =>
+    list.innerHTML = monthKeys.map((key, idx) =>
         '<div class="diary-month-group">' +
-        '<div class="diary-month-header"><span>' + key + '</span><span class="diary-month-count">' + groups[key].length + ' 篇</span></div>' +
+        '<div class="diary-month-header" onclick="toggleDiaryMonth(this)">' +
+        '<span class="diary-month-arrow">▼</span>' +
+        '<span style="flex:1">' + key + '</span>' +
+        '<span class="diary-month-count">' + groups[key].length + ' 篇</span></div>' +
         '<div class="diary-month-list">' +
         groups[key].map(d => `
         <div class="diary-item" onclick="editDiary('${d.id}')">
