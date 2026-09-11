@@ -62,7 +62,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 .empty-tip { text-align: center; color: var(--text-dim); padding: 40px 0; font-size: 14px; }
 
 /* Todo Items */
-.todo-item { display: flex; align-items: center; gap: 10px; background: var(--card); padding: 12px; border-radius: 12px; border-left: 3px solid var(--border); margin-bottom: 8px; transition: opacity 0.2s; -webkit-user-select: none; user-select: none; }
+.todo-item { display: flex; align-items: center; gap: 10px; background: var(--card); padding: 12px; border-radius: 12px; border-left: 3px solid var(--border); margin-bottom: 8px; -webkit-user-select: none; user-select: none; }
 .todo-item:active { opacity: 0.8; }
 .todo-item.high { border-left-color: var(--danger); }
 .todo-item.mid { border-left-color: var(--warning); }
