@@ -1,4 +1,3 @@
-
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 :root { --primary: #6366f1; --primary-light: #818cf8; --bg: #0f0f14; --card: #1a1a24; --card-light: #24242f; --text: #e5e5e5; --text-dim: #888; --border: #2a2a3a; --danger: #ef4444; --success: #22c55e; --warning: #f59e0b; }
 html, body { height: 100%; }
@@ -17,6 +16,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 .auth-btn { width: 100%; background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 12px; font-size: 16px; cursor: pointer; transition: background 0.2s; }
 .auth-btn:hover { background: var(--primary-light); }
 .auth-error { color: var(--danger); font-size: 13px; text-align: center; min-height: 20px; margin-top: 8px; }
+.password-rules { color: var(--danger); font-size: 12px; margin: -6px 0 8px 2px; line-height: 1.4; }
+.password-rules.valid { color: var(--success); }
 .forgot-link { display: block; text-align: center; color: var(--primary-light); font-size: 13px; margin-top: 12px; background: none; border: none; cursor: pointer; text-decoration: none; width: 100%; }
 .forgot-link:hover { text-decoration: underline; }
 .forgot-question-text { background: var(--card-light); border-radius: 8px; padding: 12px; font-size: 14px; color: var(--text); margin-bottom: 12px; text-align: center; }
@@ -89,9 +90,12 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 .countdown-info h3 { font-size: 15px; }
 .countdown-info p { font-size: 12px; color: var(--text-dim); }
 .countdown-days { font-size: 24px; font-weight: 700; color: var(--primary-light); }
-.add-bar { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+.add-bar { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; align-items: flex-end; }
 .add-bar input, .add-bar select { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; color: var(--text); font-size: 13px; outline: none; }
 .add-bar input { flex: 1; min-width: 120px; }
+.date-input-wrap { display: flex; flex-direction: column; gap: 2px; }
+.date-input-wrap label { font-size: 10px; color: var(--text-dim); padding-left: 2px; }
+.date-input-wrap input { padding: 6px 8px; font-size: 12px; min-width: auto; }
 .add-bar button { background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-size: 14px; cursor: pointer; }
 .add-bar button:hover { background: var(--primary-light); }
 .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 600px; display: flex; background: var(--card); border-top: 1px solid var(--border); z-index: 100; }
@@ -160,12 +164,15 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 /* Diary Month Groups */
 .diary-month-group { margin-bottom: 20px; }
 .diary-month-header {
-    display: flex; align-items: center; justify-content: space-between;
+    display: flex; align-items: center; gap: 6px;
     padding: 6px 4px 10px;
     font-size: 14px; font-weight: 700; color: var(--primary-light);
     border-bottom: 1px solid var(--border);
     margin-bottom: 10px;
+    cursor: pointer;
 }
+.diary-month-header:active { opacity: 0.7; }
+.diary-month-arrow { font-size: 10px; width: 14px; text-align: center; }
 .diary-month-count {
     font-size: 12px; font-weight: 400; color: var(--text-dim);
     background: var(--card); padding: 2px 10px; border-radius: 10px;
