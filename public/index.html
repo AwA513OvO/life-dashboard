@@ -22,6 +22,7 @@
             <input type="text" id="auth-username" placeholder="用户名" class="auth-input" />
             <input type="password" id="auth-password" placeholder="密码" class="auth-input" />
             <input type="password" id="auth-password-confirm" placeholder="确认密码" class="auth-input hidden" />
+            <p id="password-rules" class="password-rules hidden">密码需4-8位，包含字母和数字</p>
             <div id="security-fields" class="hidden">
                 <select id="auth-security-question" class="auth-input">
                     <option value="">选择密保问题</option>
@@ -36,6 +37,7 @@
             <button id="auth-submit" class="auth-btn">登录</button>
             <p id="auth-error" class="auth-error"></p>
             <button id="forgot-password-link" class="forgot-link">忘记密码？</button>
+            <a href="life-dashboard-guide.html" target="_blank" class="forgot-link">📖 使用指南</a>
         </div>
     </div>
 
@@ -46,14 +48,12 @@
                 <h2>找回密码</h2>
                 <button id="forgot-modal-close">✕</button>
             </div>
-            <!-- Step 1: 输入用户名 -->
             <div id="forgot-step1">
                 <input type="text" id="forgot-username" placeholder="输入你的用户名" class="modal-input" />
                 <button id="forgot-get-question" class="auth-btn">下一步</button>
                 <p id="forgot-step1-error" class="auth-error"></p>
                 <button id="forgot-request-admin" class="forgot-link" style="margin-top:16px">密保也忘了？找管理员重置</button>
             </div>
-            <!-- Step 2: 回答密保问题 + 设置新密码 -->
             <div id="forgot-step2" class="hidden">
                 <p id="forgot-display-question" class="forgot-question-text"></p>
                 <p id="forgot-admin-approved-msg" class="forgot-question-text" style="color:var(--success);display:none">✓ 管理员已批准你的重置请求，请设置新密码</p>
@@ -64,13 +64,11 @@
                 <p id="forgot-step2-error" class="auth-error"></p>
                 <button id="forgot-request-admin-2" class="forgot-link" style="margin-top:16px">密保也忘了？找管理员重置</button>
             </div>
-            <!-- Step 3: 成功 -->
             <div id="forgot-step3" class="hidden">
                 <div class="forgot-success-icon">✓</div>
                 <p>密码已重置成功！请用新密码登录。</p>
                 <button id="forgot-done" class="auth-btn">好的</button>
             </div>
-            <!-- Step 4: 管理员重置请求 -->
             <div id="forgot-step4" class="hidden">
                 <div class="forgot-success-icon">📨</div>
                 <p>已向管理员发送重置请求</p>
@@ -85,6 +83,7 @@
         <div class="top-bar">
             <span id="current-user" class="user-badge">🐼 </span>
             <div class="top-bar-right">
+                <a id="guide-btn" class="top-bar-icon" href="life-dashboard-guide.html" target="_blank" title="使用指南">❓</a>
                 <button id="admin-btn" class="top-bar-icon hidden">⚙️</button>
                 <button id="logout-btn" class="logout-btn">退出</button>
             </div>
@@ -122,7 +121,7 @@
             <div class="list" id="timer-list"></div>
             <div class="add-bar">
                 <input type="text" id="timer-input" placeholder="标题（如：考试）" />
-                <input type="datetime-local" id="timer-date" />
+                <div class="date-input-wrap"><label>时间</label><input type="datetime-local" id="timer-date" /></div>
                 <select id="timer-direction"><option value="countdown">倒计时</option><option value="countup">正向</option></select>
                 <input type="color" id="timer-color" value="#6366f1" />
                 <button id="timer-add-btn">+</button>
@@ -140,7 +139,7 @@
                 <div class="add-bar">
                     <input type="text" id="goal-input" placeholder="目标标题" />
                     <input type="text" id="goal-desc" placeholder="描述（可选）" />
-                    <input type="date" id="goal-deadline" />
+                    <div class="date-input-wrap"><label>截止</label><input type="date" id="goal-deadline" /></div>
                     <button id="goal-add-btn">+</button>
                 </div>
             </div>
@@ -148,7 +147,7 @@
                 <div class="list" id="countdown-list"></div>
                 <div class="add-bar">
                     <input type="text" id="cd-input" placeholder="事件名称" />
-                    <input type="date" id="cd-date" />
+                    <div class="date-input-wrap"><label>日期</label><input type="date" id="cd-date" /></div>
                     <select id="cd-mode"><option value="until">距今还有</option><option value="since">已经过了</option></select>
                     <input type="text" id="cd-emoji" placeholder="emoji" value="📅" style="width:50px" />
                     <button id="cd-add-btn">+</button>
@@ -183,7 +182,7 @@
                 <div class="list" id="diary-list"></div>
                 <div class="add-bar">
                     <input type="text" id="diary-title" placeholder="标题" />
-                    <input type="date" id="diary-date" />
+                    <div class="date-input-wrap"><label>日期</label><input type="date" id="diary-date" /></div>
                     <select id="diary-mood">
                         <option>😊</option><option>😄</option><option>😢</option><option>😡</option>
                         <option>😨</option><option>😴</option><option>🤔</option><option>😎</option>
