@@ -1080,7 +1080,7 @@ section { padding: 20px 0px; }
     <h1>版本迭代记录</h1>
     <p class="subtitle">生活管理面板 · 从想法到现实的完整成长轨迹</p>
     <div class="badge-row">
-        <span class="badge green">11 个版本迭代</span>
+        <span class="badge green">13 个版本迭代</span>
         <span class="badge blue">持续优化中</span>
         <span class="badge">完全免费</span>
     </div>
@@ -1088,9 +1088,9 @@ section { padding: 20px 0px; }
 
 <!-- 总览统计 -->
 <div class="stats-row">
-    <div class="stat-box"><div class="num">11</div><div class="label">版本迭代</div></div>
-    <div class="stat-box"><div class="num">4</div><div class="label">重大版本</div></div>
-    <div class="stat-box"><div class="num">45+</div><div class="label">功能点</div></div>
+    <div class="stat-box"><div class="num">13</div><div class="label">版本迭代</div></div>
+    <div class="stat-box"><div class="num">5</div><div class="label">重大版本</div></div>
+    <div class="stat-box"><div class="num">50+</div><div class="label">功能点</div></div>
     <div class="stat-box"><div class="num">5</div><div class="label">底部导航（精简后）</div></div>
 </div>
 
@@ -1490,6 +1490,96 @@ section { padding: 20px 0px; }
             </div>
         </div>
 
+        <!-- v2.9 -->
+        <div class="version-block">
+            <div class="version-dot"></div>
+            <div class="version-header">
+                <span class="version-tag">v2.9</span>
+                <span class="version-title">待办优先级排序 · 长按编辑</span>
+                <span class="version-date">交互升级</span>
+            </div>
+            <div class="version-card">
+                <p class="version-desc">待办清单从按创建时间排序改为按重要程度排序，支持手动调整顺序。新增长按编辑功能，可以随时修改待办内容和优先级。</p>
+
+                <div class="change-category">优先级排序</div>
+                <ul class="change-list">
+                    <li>待办自动按优先级排序：高 → 中 → 低</li>
+                    <li>同等优先级内按用户手动排列的顺序显示</li>
+                    <li>新添加的待办自动放到对应优先级组的末尾</li>
+                </ul>
+
+                <div class="change-category">长按编辑</div>
+                <ul class="change-list">
+                    <li>长按待办项 600ms 弹出编辑弹窗</li>
+                    <li>可修改待办内容、分类、优先级</li>
+                    <li>保存后立即重新排序，无需刷新</li>
+                    <li>触摸/鼠标都支持长按</li>
+                </ul>
+
+                <div class="change-category">手动排序</div>
+                <ul class="change-list">
+                    <li>每个待办项右侧有 ↑/↓ 按钮</li>
+                    <li>只能在同等优先级内调整顺序</li>
+                    <li>列表第一项的 ↑ 和最后一项的 ↓ 自动禁用</li>
+                </ul>
+
+                <div class="change-category">服务器稳定性</div>
+                <ul class="change-list">
+                    <li>所有 API 路由添加 try-catch 错误保护</li>
+                    <li>MongoDB 连接失败时服务器不再崩溃</li>
+                    <li>新增全局错误处理器和进程级保护</li>
+                    <li>新增 /api/health 健康检查接口</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- v3.0 -->
+        <div class="version-block major">
+            <div class="version-dot"></div>
+            <div class="version-header">
+                <span class="version-tag">v3.0</span>
+                <span class="version-title">日记配图 · Cloudinary 云存储</span>
+                <span class="version-date">重大版本升级</span>
+            </div>
+            <div class="version-card">
+                <p class="version-desc">日记功能支持上传配图，图片存储在 Cloudinary 云端，自动压缩优化，不占用数据库空间。25GB 免费存储空间，约可存 6 万张图片。</p>
+
+                <div class="change-category">日记配图</div>
+                <ul class="change-list">
+                    <li>写日记时可点"添加图片"从手机/电脑选图</li>
+                    <li>支持所有常见图片格式（JPG/PNG/HEIC/WebP）</li>
+                    <li>原图最大 10MB，上传后自动压缩</li>
+                    <li>日记列表显示图片缩略图</li>
+                    <li>点开日记可查看完整图片</li>
+                    <li>可随时删除已上传的图片</li>
+                </ul>
+
+                <div class="change-category">Cloudinary 云存储</div>
+                <ul class="change-list">
+                    <li>图片存储在 Cloudinary 云端，不占 MongoDB 空间</li>
+                    <li>服务器端自动压缩：宽度限制 1280px，质量自动优化</li>
+                    <li>自动转换为 WebP/AVIF 格式，体积更小</li>
+                    <li>25GB 免费存储空间，约存 6 万张图</li>
+                    <li>新增 POST /api/upload 和 POST /api/upload/delete 接口</li>
+                </ul>
+
+                <div class="change-category">依赖更新</div>
+                <ul class="change-list">
+                    <li>新增 cloudinary 依赖（云端图片管理）</li>
+                    <li>新增 multer 依赖（文件上传中间件）</li>
+                    <li>express.json 限制提升至 15MB</li>
+                </ul>
+
+                <div class="change-category">界面优化</div>
+                <ul class="change-list">
+                    <li>计时器底栏图标从 ⏱ 改为 ⏰，大小统一</li>
+                    <li>删除每 10 秒自动拉取数据的定时器，减少卡顿</li>
+                    <li>计时器仅在计时页面可见时渲染</li>
+                    <li>使用指南弹窗 iframe 加载，无需跳转新页面</li>
+                </ul>
+            </div>
+        </div>
+
     </div>
 </section>
 
@@ -1575,6 +1665,18 @@ section { padding: 20px 0px; }
                     <td>📊 交互升级</td>
                     <td>点击展开记录 + 周/月/年分组折叠</td>
                 </tr>
+                <tr>
+                    <td class="ver-cell">v2.9</td>
+                    <td>优先级排序 · 长按编辑</td>
+                    <td>🔄 交互升级</td>
+                    <td>优先级排序 + 长按编辑 + 手动排序 + 服务器稳定</td>
+                </tr>
+                <tr>
+                    <td class="ver-cell major">v3.0</td>
+                    <td>日记配图 · Cloudinary 云存储</td>
+                    <td>🚀 重大升级</td>
+                    <td>日记配图 + 云存储 + 自动压缩 + 性能优化</td>
+                </tr>
             </tbody>
         </table>
     </div>
@@ -1585,7 +1687,7 @@ section { padding: 20px 0px; }
 <!-- 功能模块全景 -->
 <section>
     <h2>功能模块全景</h2>
-    <p style="color:var(--muted);margin-bottom:20px;">经过 11 次迭代，底部导航精简为 5 个图标，页面内通过图标按钮切换子功能。管理后台移至顶栏齿轮图标，统计页面支持点击展开查看详细记录。</p>
+    <p style="color:var(--muted);margin-bottom:20px;">经过 13 次迭代，底部导航精简为 5 个图标，页面内通过图标按钮切换子功能。管理后台移至顶栏齿轮图标，统计页面支持点击展开查看详细记录。日记支持配图上传，待办支持长按编辑和优先级排序。</p>
 
     <div class="stats-row" style="grid-template-columns: repeat(5, 1fr);">
         <div class="stat-box"><div class="num">✓</div><div class="label">待办清单</div></div>
