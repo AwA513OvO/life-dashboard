@@ -126,6 +126,14 @@ document.getElementById('auth-password').addEventListener('keypress', e => { if 
 document.getElementById('auth-password-confirm').addEventListener('keypress', e => { if (e.key === 'Enter') document.getElementById('auth-submit').click(); });
 document.getElementById('logout-btn').addEventListener('click', logout);
 
+// ====== Guide Modal ======
+document.getElementById('guide-btn').addEventListener('click', () => {
+    document.getElementById('guide-modal').classList.remove('hidden');
+});
+document.getElementById('guide-modal-close').addEventListener('click', () => {
+    document.getElementById('guide-modal').classList.add('hidden');
+});
+
 // ====== Admin gear icon in top bar ======
 document.getElementById('admin-btn').addEventListener('click', () => {
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
