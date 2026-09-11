@@ -79,7 +79,6 @@ document.querySelectorAll('.auth-tab').forEach(tab => {
 
 function validatePasswordRules() {
     const pw = document.getElementById('auth-password').value;
-    const rulesEl = document.getElementById('password-rules');
     if (!pw) return false;
     const lengthOk = pw.length >= 4 && pw.length <= 8;
     const hasLetter = /[a-zA-Z]/.test(pw);
@@ -140,6 +139,7 @@ document.getElementById('admin-btn').addEventListener('click', () => {
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
     document.getElementById('page-admin').classList.remove('hidden');
+    timerPageVisible = false;
     renderAdmin();
 });
 
@@ -210,7 +210,7 @@ document.getElementById('forgot-done').addEventListener('click', () => {
     document.getElementById('auth-username').focus();
 });
 
-// ====== Request Admin Reset (when security question also forgotten) ======
+// ====== Request Admin Reset ======
 document.getElementById('forgot-request-admin').addEventListener('click', async () => {
     const username = document.getElementById('forgot-username').value.trim();
     if (!username) { document.getElementById('forgot-step1-error').textContent = '请先输入用户名'; return; }
@@ -285,7 +285,6 @@ let longPressTimer = null;
 function renderTodos() {
     const list = document.getElementById('todo-list');
     let items = data.todos.filter(t => !t.archived);
-    // 按优先级排序（高→中→低），同优先级按手动顺序排
     items.sort((a, b) => {
         if (priorityOrder(a.priority) !== priorityOrder(b.priority))
             return priorityOrder(a.priority) - priorityOrder(b.priority);
@@ -471,19 +470,14 @@ function getStatsRangeStart(range) {
     else if (range === 'year') { start.setMonth(0,1); start.setHours(0,0,0,0); }
     return start;
 }
-
 function getStatsGroupKey(dateStr, range) {
     const d = new Date(dateStr);
     if (range === 'day') return null;
-    if (range === 'week') {
-        const days = ['周日','周一','周二','周三','周四','周五','周六'];
-        return days[d.getDay()] + ' ' + (d.getMonth()+1) + '/' + d.getDate();
-    }
+    if (range === 'week') { const days = ['周日','周一','周二','周三','周四','周五','周六']; return days[d.getDay()] + ' ' + (d.getMonth()+1) + '/' + d.getDate(); }
     if (range === 'month') return '第' + Math.ceil(d.getDate() / 7) + '周';
     if (range === 'year') return (d.getMonth()+1) + '月';
     return null;
 }
-
 function formatStatsTime(timeStr, range, isDateOnly) {
     const d = new Date(timeStr);
     if (isDateOnly) {
@@ -501,187 +495,79 @@ function formatStatsTime(timeStr, range, isDateOnly) {
     if (range === 'year') return (d.getMonth()+1) + '月' + d.getDate() + '日';
     return '';
 }
-
 function sortGroupKeys(keys, range) {
-    if (range === 'week') {
-        const dayOrder = {'周日':0,'周一':1,'周二':2,'周三':3,'周四':4,'周五':5,'周六':6};
-        return keys.sort((a,b) => (dayOrder[a.split(' ')[0]]||0) - (dayOrder[b.split(' ')[0]]||0));
-    }
-    if (range === 'month' || range === 'year') {
-        return keys.sort((a,b) => {
-            const na = a.match(/\d+/), nb = b.match(/\d+/);
-            return (na?parseInt(na[0]):0) - (nb?parseInt(nb[0]):0);
-        });
-    }
+    if (range === 'week') { const dayOrder = {'周日':0,'周一':1,'周二':2,'周三':3,'周四':4,'周五':5,'周六':6}; return keys.sort((a,b) => (dayOrder[a.split(' ')[0]]||0) - (dayOrder[b.split(' ')[0]]||0)); }
+    if (range === 'month' || range === 'year') { return keys.sort((a,b) => { const na = a.match(/\d+/), nb = b.match(/\d+/); return (na?parseInt(na[0]):0) - (nb?parseInt(nb[0]):0); }); }
     return keys;
 }
-
 function renderStatsRecord(r, range) {
     let badge = '';
     if (r.status === 'done') badge = '<span class="stats-record-badge done">✓</span>';
     else if (r.status === 'pending') badge = '<span class="stats-record-badge pending">○</span>';
     else if (r.emoji) badge = '<span class="stats-record-badge">' + r.emoji + '</span>';
-    return '<div class="stats-record">' + badge +
-        '<span class="stats-record-content">' + r.content + '</span>' +
-        '<span class="stats-record-time">' + formatStatsTime(r.time, range, r.isDateOnly) + '</span>' +
-        '</div>';
+    return '<div class="stats-record">' + badge + '<span class="stats-record-content">' + r.content + '</span><span class="stats-record-time">' + formatStatsTime(r.time, range, r.isDateOnly) + '</span></div>';
 }
-
-function toggleStatsGroup(headerEl) {
-    const body = headerEl.nextElementSibling;
-    const arrow = headerEl.querySelector('.stats-detail-arrow');
-    body.classList.toggle('hidden');
-    arrow.textContent = body.classList.contains('hidden') ? '▶' : '▼';
-}
-
+function toggleStatsGroup(headerEl) { const body = headerEl.nextElementSibling; const arrow = headerEl.querySelector('.stats-detail-arrow'); body.classList.toggle('hidden'); arrow.textContent = body.classList.contains('hidden') ? '▶' : '▼'; }
 function renderStatsDetail(type) {
     const detailEl = document.getElementById('stats-details');
-    if (currentStatsDetailType === type) {
-        currentStatsDetailType = null;
-        detailEl.classList.add('hidden');
-        detailEl.innerHTML = '';
-        return;
-    }
+    if (currentStatsDetailType === type) { currentStatsDetailType = null; detailEl.classList.add('hidden'); detailEl.innerHTML = ''; return; }
     currentStatsDetailType = type;
     detailEl.classList.remove('hidden');
-
     const start = getStatsRangeStart(currentStatsRange); const startMs = start.getTime();
     let records = [];
-
     if (type === 'all' || type === 'done' || type === 'pending') {
-        let todos = data.todos.filter(t => {
-            const created = new Date(t.createdAt) >= startMs;
-            const completed = t.done && t.completedAt && new Date(t.completedAt) >= startMs;
-            return created || completed;
-        });
+        let todos = data.todos.filter(t => { const created = new Date(t.createdAt) >= startMs; const completed = t.done && t.completedAt && new Date(t.completedAt) >= startMs; return created || completed; });
         if (type === 'done') todos = todos.filter(t => t.done);
         if (type === 'pending') todos = todos.filter(t => !t.done);
-        records = todos.map(t => ({
-            content: t.text,
-            time: t.done && t.completedAt ? t.completedAt : t.createdAt,
-            status: t.done ? 'done' : 'pending'
-        }));
+        records = todos.map(t => ({ content: t.text, time: t.done && t.completedAt ? t.completedAt : t.createdAt, status: t.done ? 'done' : 'pending' }));
     } else if (type === 'diaries') {
-        records = data.diaries.filter(d => new Date(d.date) >= startMs).map(d => ({
-            content: d.title + (d.content ? ' · ' + d.content.slice(0,40) : ''),
-            time: d.date,
-            emoji: d.emoji,
-            isDateOnly: true
-        }));
+        records = data.diaries.filter(d => new Date(d.date) >= startMs).map(d => ({ content: d.title + (d.content ? ' · ' + d.content.slice(0,40) : ''), time: d.date, emoji: d.emoji, isDateOnly: true }));
     }
-
     records.sort((a,b) => new Date(b.time) - new Date(a.time));
-
-    if (records.length === 0) {
-        detailEl.innerHTML = '<div class="empty-tip">暂无记录</div>';
-        return;
-    }
-
-    if (currentStatsRange === 'day') {
-        detailEl.innerHTML = '<div class="stats-detail-list">' + records.map(r => renderStatsRecord(r, currentStatsRange)).join('') + '</div>';
-    } else {
+    if (records.length === 0) { detailEl.innerHTML = '<div class="empty-tip">暂无记录</div>'; return; }
+    if (currentStatsRange === 'day') { detailEl.innerHTML = '<div class="stats-detail-list">' + records.map(r => renderStatsRecord(r, currentStatsRange)).join('') + '</div>'; }
+    else {
         const groups = {};
-        records.forEach(r => {
-            const key = getStatsGroupKey(r.time, currentStatsRange) || '其他';
-            if (!groups[key]) groups[key] = [];
-            groups[key].push(r);
-        });
+        records.forEach(r => { const key = getStatsGroupKey(r.time, currentStatsRange) || '其他'; if (!groups[key]) groups[key] = []; groups[key].push(r); });
         const sortedKeys = sortGroupKeys(Object.keys(groups), currentStatsRange);
-        detailEl.innerHTML = sortedKeys.map(key =>
-            '<div class="stats-detail-group">' +
-            '<div class="stats-detail-group-header" onclick="toggleStatsGroup(this)">' +
-            '<span>' + key + '</span>' +
-            '<span class="stats-detail-count">' + groups[key].length + '条</span>' +
-            '<span class="stats-detail-arrow">▼</span></div>' +
-            '<div class="stats-detail-group-body">' + groups[key].map(r => renderStatsRecord(r, currentStatsRange)).join('') + '</div>' +
-            '</div>'
-        ).join('');
+        detailEl.innerHTML = sortedKeys.map(key => '<div class="stats-detail-group"><div class="stats-detail-group-header" onclick="toggleStatsGroup(this)"><span>' + key + '</span><span class="stats-detail-count">' + groups[key].length + '条</span><span class="stats-detail-arrow">▼</span></div><div class="stats-detail-group-body">' + groups[key].map(r => renderStatsRecord(r, currentStatsRange)).join('') + '</div></div>').join('');
     }
 }
-
 function renderStats() {
     currentStatsDetailType = null;
     const detailEl = document.getElementById('stats-details');
     if (detailEl) { detailEl.classList.add('hidden'); detailEl.innerHTML = ''; }
-
     const start = getStatsRangeStart(currentStatsRange); const startMs = start.getTime();
     const completedInRange = data.todos.filter(t => t.done && t.completedAt && new Date(t.completedAt) >= startMs);
-    const createdInRange = data.todos.filter(t => !t.archived && new Date(t.createdAt) >= startMs);
-    const totalInRange = data.todos.filter(t => {
-        const created = new Date(t.createdAt) >= startMs;
-        const completed = t.done && t.completedAt && new Date(t.completedAt) >= startMs;
-        return created || completed;
-    });
-    const doneInRange = completedInRange;
+    const totalInRange = data.todos.filter(t => { const created = new Date(t.createdAt) >= startMs; const completed = t.done && t.completedAt && new Date(t.completedAt) >= startMs; return created || completed; });
     const diariesInRange = data.diaries.filter(d => new Date(d.date) >= startMs);
     const goalsDone = data.goals.filter(g => g.progress >= 100).length;
-    const completionRate = totalInRange.length ? Math.round(doneInRange.length / totalInRange.length * 100) + '%' : '0%';
+    const completionRate = totalInRange.length ? Math.round(completedInRange.length / totalInRange.length * 100) + '%' : '0%';
     document.getElementById('stats-cards').innerHTML = `
         <div class="stat-card clickable" onclick="renderStatsDetail('all')"><div class="num">${totalInRange.length}</div><div class="label">待办总数</div></div>
-        <div class="stat-card success clickable" onclick="renderStatsDetail('done')"><div class="num">${doneInRange.length}</div><div class="label">已完成</div></div>
-        <div class="stat-card warning clickable" onclick="renderStatsDetail('pending')"><div class="num">${Math.max(0, totalInRange.length - doneInRange.length)}</div><div class="label">待完成</div></div>
+        <div class="stat-card success clickable" onclick="renderStatsDetail('done')"><div class="num">${completedInRange.length}</div><div class="label">已完成</div></div>
+        <div class="stat-card warning clickable" onclick="renderStatsDetail('pending')"><div class="num">${Math.max(0, totalInRange.length - completedInRange.length)}</div><div class="label">待完成</div></div>
         <div class="stat-card"><div class="num">${completionRate}</div><div class="label">完成率</div></div>`;
     const cats = {}; totalInRange.forEach(t => cats[t.category]=(cats[t.category]||0)+1);
     const catColors = {'工作':'#6366f1','生活':'#22c55e','学习':'#f59e0b','其他':'#888'};
-    document.getElementById('stats-category').innerHTML = '<h3>分类统计</h3>' + (Object.keys(cats).length ? Object.entries(cats).map(([name,count]) =>
-        `<div class="stat-row"><span class="name">${name}</span><div class="bar"><div class="bar-fill" style="width:${count/totalInRange.length*100}%;background:${catColors[name]||'#888'}"></div></div><span class="val">${count}</span></div>`).join('') : '<div class="empty-tip">暂无数据</div>');
+    document.getElementById('stats-category').innerHTML = '<h3>分类统计</h3>' + (Object.keys(cats).length ? Object.entries(cats).map(([name,count]) => `<div class="stat-row"><span class="name">${name}</span><div class="bar"><div class="bar-fill" style="width:${count/totalInRange.length*100}%;background:${catColors[name]||'#888'}"></div></div><span class="val">${count}</span></div>`).join('') : '<div class="empty-tip">暂无数据</div>');
     const pris = {high:0,mid:0,low:0}; totalInRange.forEach(t => pris[t.priority]++);
-    document.getElementById('stats-priority').innerHTML = `<h3>优先级分布</h3>
-        <div class="stat-row"><span class="name">高</span><div class="bar"><div class="bar-fill" style="width:${totalInRange.length?pris.high/totalInRange.length*100:0}%;background:var(--danger)"></div></div><span class="val">${pris.high}</span></div>
-        <div class="stat-row"><span class="name">中</span><div class="bar"><div class="bar-fill" style="width:${totalInRange.length?pris.mid/totalInRange.length*100:0}%;background:var(--warning)"></div></div><span class="val">${pris.mid}</span></div>
-        <div class="stat-row"><span class="name">低</span><div class="bar"><div class="bar-fill" style="width:${totalInRange.length?pris.low/totalInRange.length*100:0}%;background:var(--success)"></div></div><span class="val">${pris.low}</span></div>`;
+    document.getElementById('stats-priority').innerHTML = `<h3>优先级分布</h3><div class="stat-row"><span class="name">高</span><div class="bar"><div class="bar-fill" style="width:${totalInRange.length?pris.high/totalInRange.length*100:0}%;background:var(--danger)"></div></div><span class="val">${pris.high}</span></div><div class="stat-row"><span class="name">中</span><div class="bar"><div class="bar-fill" style="width:${totalInRange.length?pris.mid/totalInRange.length*100:0}%;background:var(--warning)"></div></div><span class="val">${pris.mid}</span></div><div class="stat-row"><span class="name">低</span><div class="bar"><div class="bar-fill" style="width:${totalInRange.length?pris.low/totalInRange.length*100:0}%;background:var(--success)"></div></div><span class="val">${pris.low}</span></div>`;
     const avgProgress = data.goals.length ? Math.round(data.goals.reduce((s,g)=>s+g.progress,0)/data.goals.length) : 0;
-    document.getElementById('stats-goals').innerHTML = `<h3>目标概览</h3>
-        <div class="stat-row"><span class="name">已完成</span><div class="bar"><div class="bar-fill" style="width:${data.goals.length?goalsDone/data.goals.length*100:0}%;background:var(--success)"></div></div><span class="val">${goalsDone}</span></div>
-        <div class="stat-row"><span class="name">总数</span><div class="bar"><div class="bar-fill" style="width:100%;background:var(--border)"></div></div><span class="val">${data.goals.length}</span></div>
-        <div class="stat-row"><span class="name">平均进度</span><div class="bar"><div class="bar-fill" style="width:${avgProgress}%;background:var(--primary)"></div></div><span class="val">${avgProgress}%</span></div>`;
-    document.getElementById('stats-diaries').innerHTML = `<h3>日记统计</h3>
-        <div class="stat-row clickable" onclick="renderStatsDetail('diaries')"><span class="name">已写</span><div class="bar"><div class="bar-fill" style="width:100%;background:var(--primary-light)"></div></div><span class="val">${diariesInRange.length} ▸</span></div>`;
+    document.getElementById('stats-goals').innerHTML = `<h3>目标概览</h3><div class="stat-row"><span class="name">已完成</span><div class="bar"><div class="bar-fill" style="width:${data.goals.length?goalsDone/data.goals.length*100:0}%;background:var(--success)"></div></div><span class="val">${goalsDone}</span></div><div class="stat-row"><span class="name">总数</span><div class="bar"><div class="bar-fill" style="width:100%;background:var(--border)"></div></div><span class="val">${data.goals.length}</span></div><div class="stat-row"><span class="name">平均进度</span><div class="bar"><div class="bar-fill" style="width:${avgProgress}%;background:var(--primary)"></div></div><span class="val">${avgProgress}%</span></div>`;
+    document.getElementById('stats-diaries').innerHTML = `<h3>日记统计</h3><div class="stat-row clickable" onclick="renderStatsDetail('diaries')"><span class="name">已写</span><div class="bar"><div class="bar-fill" style="width:100%;background:var(--primary-light)"></div></div><span class="val">${diariesInRange.length} ▸</span></div>`;
 }
 
 // ====== Diary ======
-function toggleDiaryMonth(headerEl) {
-    const body = headerEl.nextElementSibling;
-    const arrow = headerEl.querySelector('.diary-month-arrow');
-    body.classList.toggle('hidden');
-    arrow.textContent = body.classList.contains('hidden') ? '▶' : '▼';
-}
-
+function toggleDiaryMonth(headerEl) { const body = headerEl.nextElementSibling; const arrow = headerEl.querySelector('.diary-month-arrow'); body.classList.toggle('hidden'); arrow.textContent = body.classList.contains('hidden') ? '▶' : '▼'; }
 function renderDiaries() {
     const list = document.getElementById('diary-list');
     if (data.diaries.length === 0) { list.innerHTML = '<div class="empty-tip">暂无日记</div>'; return; }
     const sorted = [...data.diaries].sort((a,b) => new Date(b.date) - new Date(a.date));
-    
-    // 按月分组
     const groups = {};
-    sorted.forEach(d => {
-        const dt = new Date(d.date);
-        const key = dt.getFullYear() + '年' + (dt.getMonth()+1) + '月';
-        if (!groups[key]) groups[key] = [];
-        groups[key].push(d);
-    });
-    
-    const monthKeys = Object.keys(groups).sort((a,b) => {
-        const ya = parseInt(a), yb = parseInt(b);
-        const ma = parseInt(a.match(/年(\d+)月/)?.[1]||0);
-        const mb = parseInt(b.match(/年(\d+)月/)?.[1]||0);
-        return (yb*12+mb) - (ya*12+ma);
-    });
-    
-    list.innerHTML = monthKeys.map((key, idx) =>
-        '<div class="diary-month-group">' +
-        '<div class="diary-month-header" onclick="toggleDiaryMonth(this)">' +
-        '<span class="diary-month-arrow">▼</span>' +
-        '<span style="flex:1">' + key + '</span>' +
-        '<span class="diary-month-count">' + groups[key].length + ' 篇</span></div>' +
-        '<div class="diary-month-list">' +
-        groups[key].map(d => `
-        <div class="diary-item" onclick="editDiary('${d.id}')">
-            <h3>${d.emoji||''} ${d.title}</h3>
-            <div class="diary-meta"><span>${relTime(d.date)}</span></div>
-            <div class="diary-preview">${(d.content||'').slice(0,80)}</div></div>`).join('') +
-        '</div></div>'
-    ).join('');
+    sorted.forEach(d => { const dt = new Date(d.date); const key = dt.getFullYear() + '年' + (dt.getMonth()+1) + '月'; if (!groups[key]) groups[key] = []; groups[key].push(d); });
+    const monthKeys = Object.keys(groups).sort((a,b) => { const ya = parseInt(a), yb = parseInt(b); const ma = parseInt(a.match(/年(\d+)月/)?.[1]||0); const mb = parseInt(b.match(/年(\d+)月/)?.[1]||0); return (yb*12+mb) - (ya*12+ma); });
+    list.innerHTML = monthKeys.map(key => '<div class="diary-month-group"><div class="diary-month-header" onclick="toggleDiaryMonth(this)"><span class="diary-month-arrow">▼</span><span style="flex:1">' + key + '</span><span class="diary-month-count">' + groups[key].length + ' 篇</span></div><div class="diary-month-list">' + groups[key].map(d => `<div class="diary-item" onclick="editDiary('${d.id}')"><h3>${d.emoji||''} ${d.title}</h3><div class="diary-meta"><span>${relTime(d.date)}</span></div><div class="diary-preview">${(d.content||'').slice(0,80)}</div></div>`).join('') + '</div></div>').join('');
 }
 function addDiary() {
     const title = document.getElementById('diary-title').value.trim();
@@ -712,11 +598,7 @@ function renderVaultState() {
     const locked = document.getElementById('vault-locked');
     const unlocked = document.getElementById('vault-unlocked');
     setup.classList.add('hidden'); locked.classList.add('hidden'); unlocked.classList.add('hidden');
-    api('/api/me').then(me => {
-        if (!me.hasVault) { setup.classList.remove('hidden'); }
-        else if (!vaultUnlocked) { locked.classList.remove('hidden'); }
-        else { unlocked.classList.remove('hidden'); renderVaultList(); }
-    });
+    api('/api/me').then(me => { if (!me.hasVault) { setup.classList.remove('hidden'); } else if (!vaultUnlocked) { locked.classList.remove('hidden'); } else { unlocked.classList.remove('hidden'); renderVaultList(); } });
 }
 function renderVaultList() {
     const list = document.getElementById('vault-list');
@@ -724,76 +606,34 @@ function renderVaultList() {
     if (currentVaultFilter !== 'all') items = items.filter(v => v.type === currentVaultFilter);
     if (items.length === 0) { list.innerHTML = '<div class="empty-tip">保密柜为空</div>'; return; }
     const typeIcons = { diary: '📖', todo: '✓', note: '📝' };
-    list.innerHTML = items.map(v => {
-        let title = v.title;
-        try { title = vaultKey ? CryptoJS.AES.decrypt(v.title, vaultKey).toString(CryptoJS.enc.Utf8) : '🔒 加密内容'; } catch(e) { title = '🔒 加密内容'; }
-        return `<div class="vault-item" onclick="editVault('${v.id}')">
-            <span class="vault-item-icon">${typeIcons[v.type]||'📝'}</span>
-            <div class="vault-item-info"><h3>${title}</h3><p>${relTime(v.createdAt)}</p></div>
-            <span class="vault-item-del" onclick="delVault(event,'${v.id}')">✕</span></div>`;
-    }).join('');
+    list.innerHTML = items.map(v => { let title = v.title; try { title = vaultKey ? CryptoJS.AES.decrypt(v.title, vaultKey).toString(CryptoJS.enc.Utf8) : '🔒 加密内容'; } catch(e) { title = '🔒 加密内容'; } return `<div class="vault-item" onclick="editVault('${v.id}')"><span class="vault-item-icon">${typeIcons[v.type]||'📝'}</span><div class="vault-item-info"><h3>${title}</h3><p>${relTime(v.createdAt)}</p></div><span class="vault-item-del" onclick="delVault(event,'${v.id}')">✕</span></div>`; }).join('');
 }
 async function setupVault() {
     const pw = document.getElementById('vault-setup-password').value;
     const cf = document.getElementById('vault-setup-confirm').value;
     if (pw.length < 4) { document.getElementById('vault-setup-error').textContent = '密码至少4位'; return; }
     if (pw !== cf) { document.getElementById('vault-setup-error').textContent = '两次密码不一致，请重新输入'; return; }
-    try {
-        await api('/api/vault/setup', 'POST', { vaultPassword: pw });
-        vaultKey = pw; vaultUnlocked = true;
-        document.getElementById('vault-setup-error').textContent = '';
-        renderVaultState();
-    } catch(e) { document.getElementById('vault-setup-error').textContent = '设置失败'; }
+    try { await api('/api/vault/setup', 'POST', { vaultPassword: pw }); vaultKey = pw; vaultUnlocked = true; document.getElementById('vault-setup-error').textContent = ''; renderVaultState(); } catch(e) { document.getElementById('vault-setup-error').textContent = '设置失败'; }
 }
 async function unlockVault() {
     const pw = document.getElementById('vault-unlock-password').value;
-    try {
-        await api('/api/vault/verify', 'POST', { vaultPassword: pw });
-        vaultKey = pw; vaultUnlocked = true;
-        document.getElementById('vault-unlock-error').textContent = '';
-        document.getElementById('vault-unlock-password').value = '';
-        await loadData();
-        renderVaultState();
-    } catch(e) { document.getElementById('vault-unlock-error').textContent = '密码错误'; }
+    try { await api('/api/vault/verify', 'POST', { vaultPassword: pw }); vaultKey = pw; vaultUnlocked = true; document.getElementById('vault-unlock-error').textContent = ''; document.getElementById('vault-unlock-password').value = ''; await loadData(); renderVaultState(); } catch(e) { document.getElementById('vault-unlock-error').textContent = '密码错误'; }
 }
 function lockVault() { vaultUnlocked = false; vaultKey = ''; renderVaultState(); }
-
-// ====== Vault Reset ======
-document.getElementById('vault-forgot-link').addEventListener('click', () => {
-    document.getElementById('vault-reset-modal').classList.remove('hidden');
-    document.getElementById('vault-reset-confirm-input').value = '';
-    document.getElementById('vault-reset-error').textContent = '';
-});
+document.getElementById('vault-forgot-link').addEventListener('click', () => { document.getElementById('vault-reset-modal').classList.remove('hidden'); document.getElementById('vault-reset-confirm-input').value = ''; document.getElementById('vault-reset-error').textContent = ''; });
 document.getElementById('vault-reset-close').addEventListener('click', () => document.getElementById('vault-reset-modal').classList.add('hidden'));
 document.getElementById('vault-reset-cancel').addEventListener('click', () => document.getElementById('vault-reset-modal').classList.add('hidden'));
-
 document.getElementById('vault-reset-confirm-btn').addEventListener('click', async () => {
     const loginPassword = document.getElementById('vault-reset-confirm-input').value;
     if (!loginPassword) { document.getElementById('vault-reset-error').textContent = '请输入登录密码以确认'; return; }
-    
     const me = await api('/api/me');
     try {
-        const verifyRes = await fetch('/api/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: me.username, password: loginPassword })
-        });
+        const verifyRes = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: me.username, password: loginPassword }) });
         const verifyData = await verifyRes.json();
         if (verifyData.error) { document.getElementById('vault-reset-error').textContent = '登录密码错误'; return; }
     } catch(e) { document.getElementById('vault-reset-error').textContent = '验证失败'; return; }
-    
-    try {
-        const res = await api('/api/vault/reset', 'POST', {});
-        if (res.error) { document.getElementById('vault-reset-error').textContent = res.error; return; }
-        document.getElementById('vault-reset-modal').classList.add('hidden');
-        vaultUnlocked = false;
-        vaultKey = '';
-        await loadData();
-        renderVaultState();
-        alert('保密柜已重置，所有加密内容已清除。请设置新的保密柜密码。');
-    } catch(e) { document.getElementById('vault-reset-error').textContent = '重置失败'; }
+    try { const res = await api('/api/vault/reset', 'POST', {}); if (res.error) { document.getElementById('vault-reset-error').textContent = res.error; return; } document.getElementById('vault-reset-modal').classList.add('hidden'); vaultUnlocked = false; vaultKey = ''; await loadData(); renderVaultState(); alert('保密柜已重置，所有加密内容已清除。请设置新的保密柜密码。'); } catch(e) { document.getElementById('vault-reset-error').textContent = '重置失败'; }
 });
-
 function addVaultItem() {
     const type = document.getElementById('vault-type').value;
     const title = document.getElementById('vault-title').value.trim();
@@ -829,49 +669,16 @@ function delVault(e, id) { e.stopPropagation(); data.vault = data.vault.filter(v
 async function renderAdmin() {
     try {
         const stats = await api('/api/admin/stats');
-        document.getElementById('admin-cards').innerHTML = `
-            <div class="stat-card"><div class="num">${stats.totalUsers}</div><div class="label">总用户数</div></div>
-            <div class="stat-card success"><div class="num">${stats.activeToday}</div><div class="label">今日活跃</div></div>
-            <div class="stat-card warning"><div class="num">${stats.activeWeek}</div><div class="label">本周活跃</div></div>
-            <div class="stat-card"><div class="num">${stats.newToday}</div><div class="label">今日新增</div></div>`;
-        
+        document.getElementById('admin-cards').innerHTML = `<div class="stat-card"><div class="num">${stats.totalUsers}</div><div class="label">总用户数</div></div><div class="stat-card success"><div class="num">${stats.activeToday}</div><div class="label">今日活跃</div></div><div class="stat-card warning"><div class="num">${stats.activeWeek}</div><div class="label">本周活跃</div></div><div class="stat-card"><div class="num">${stats.newToday}</div><div class="label">今日新增</div></div>`;
         const reqList = document.getElementById('admin-requests-list');
-        if (stats.pendingRequests && stats.pendingRequests.length > 0) {
-            reqList.innerHTML = stats.pendingRequests.map(r => `
-                <div class="admin-request-item">
-                    <div>
-                        <span class="req-username">${r.username}</span>
-                        <div class="req-time">提交于 ${relTime(r.createdAt)}</div>
-                    </div>
-                    <button class="admin-reset-btn" onclick="adminResetPassword('${r.username}')">批准重置</button>
-                </div>`).join('');
-        } else {
-            reqList.innerHTML = '<div class="empty-tip" style="padding:16px 0">暂无重置请求</div>';
-        }
-        
+        if (stats.pendingRequests && stats.pendingRequests.length > 0) { reqList.innerHTML = stats.pendingRequests.map(r => `<div class="admin-request-item"><div><span class="req-username">${r.username}</span><div class="req-time">提交于 ${relTime(r.createdAt)}</div></div><button class="admin-reset-btn" onclick="adminResetPassword('${r.username}')">批准重置</button></div>`).join(''); } else { reqList.innerHTML = '<div class="empty-tip" style="padding:16px 0">暂无重置请求</div>'; }
         const now = Date.now();
         const sortedUsers = [...stats.users].sort((a, b) => new Date(b.lastActive) - new Date(a.lastActive));
         document.getElementById('admin-user-list').innerHTML = sortedUsers.map(u => {
             const active = (now - new Date(u.lastActive).getTime()) < 86400000;
             const roleBadge = u.isSuperAdmin ? '<span class="admin-badge super">超级管理员</span>' : (u.isAdmin ? '<span class="admin-badge">管理员</span>' : '<span class="admin-badge user">普通用户</span>');
-            const adminBtn = u.isSuperAdmin ? '' : (u.isAdmin
-                ? `<button class="admin-action-btn remove" onclick="setAdmin('${u.username}', false)">取消管理员</button>`
-                : `<button class="admin-action-btn add" onclick="setAdmin('${u.username}', true)">设为管理员</button>`);
-            return `<div class="admin-user-card">
-                <div class="admin-user-top">
-                    <span class="admin-user-avatar">🐼</span>
-                    <span class="admin-username">${u.username}</span>
-                    ${roleBadge}
-                    <span class="admin-status ${active?'active':'inactive'}">${active?'活跃':'不活跃'}</span>
-                </div>
-                <div class="admin-user-bottom">
-                    <span class="admin-time">上次活跃: ${relTime(u.lastActive)}</span>
-                    <div class="admin-user-actions">
-                        <button class="admin-action-btn reset" onclick="adminResetPassword('${u.username}')">批准重置</button>
-                        ${adminBtn}
-                    </div>
-                </div>
-            </div>`;
+            const adminBtn = u.isSuperAdmin ? '' : (u.isAdmin ? `<button class="admin-action-btn remove" onclick="setAdmin('${u.username}', false)">取消管理员</button>` : `<button class="admin-action-btn add" onclick="setAdmin('${u.username}', true)">设为管理员</button>`);
+            return `<div class="admin-user-card"><div class="admin-user-top"><span class="admin-user-avatar">🐼</span><span class="admin-username">${u.username}</span>${roleBadge}<span class="admin-status ${active?'active':'inactive'}">${active?'活跃':'不活跃'}</span></div><div class="admin-user-bottom"><span class="admin-time">上次活跃: ${relTime(u.lastActive)}</span><div class="admin-user-actions"><button class="admin-action-btn reset" onclick="adminResetPassword('${u.username}')">批准重置</button>${adminBtn}</div></div></div>`;
         }).join('');
     } catch(e) {}
 }
@@ -896,7 +703,7 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
     });
 });
 
-// ====== Sub Navigation (icon-based switching within combined pages) ======
+// ====== Sub Navigation ======
 document.querySelectorAll('.sub-nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const page = btn.closest('.page');
