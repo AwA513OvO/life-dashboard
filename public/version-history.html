@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-trae-theme="dark"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>生活管理面板 · 版本迭代记录</title>
+<style>
+@font-face { font-family: 'NotoSansSC'; src: url('./_shared/fonts/NotoSansSC-Regular.ttf') format('truetype'); font-weight: 400; }
+@font-face { font-family: 'NotoSansSC'; src: url('./_shared/fonts/NotoSansSC-Bold.ttf') format('truetype'); font-weight: 700; }
+
+:root {
+    --bg: #0a0a0f;
+    --bg2: #14141e;
+    --bg3: #1c1c2a;
+    --ink: #e8e8f0;
+    --muted: #8888a0;
+    --rule: #2a2a3e;
+    --accent: #6366f1;
+    --accent2: #22c55e;
+    --accent3: #f59e0b;
+    --danger: #ef4444;
+    --radius: 12px;
+    --radius-lg: 20px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'NotoSansSC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    line-height: 1.8;
+    font-size: 16px;
+    overflow-x: hidden;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background:
+        radial-gradient(ellipse at 20% 0%, rgba(99,102,241,0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(34,197,94,0.05) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.container { max-width: 860px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+/* Hero */
+.hero { text-align: center; padding: 60px 0 40px; }
+.hero h1 {
+    font-size: 36px; font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), #818cf8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    margin-bottom: 8px;
+}
+.hero .subtitle { font-size: 18px; color: var(--muted); }
+.badge-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 24px; }
+.badge {
+    background: var(--bg3); border: 1px solid var(--rule); border-radius: 24px;
+    padding: 6px 16px; font-size: 13px; color: var(--muted);
+}
+.badge.green { border-color: rgba(34,197,94,0.3); color: var(--accent2); }
+.badge.blue { border-color: rgba(99,102,241,0.3); color: #818cf8; }
+
+/* Timeline */
+.timeline { position: relative; padding: 20px 0; }
+.timeline::before {
+    content: '';
+    position: absolute; left: 28px; top: 0; bottom: 0;
+    width: 2px; background: linear-gradient(180deg, var(--accent), var(--accent2));
+}
+
+.version-block {
+    position: relative;
+    padding-left: 72px;
+    margin-bottom: 32px;
+}
+.version-dot {
+    position: absolute; left: 18px; top: 6px;
+    width: 22px; height: 22px;
+    background: var(--accent);
+    border: 3px solid var(--bg);
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px var(--accent);
+}
+.version-block.major .version-dot { background: var(--accent2); box-shadow: 0 0 0 2px var(--accent2); }
+
+.version-header { margin-bottom: 12px; }
+.version-tag {
+    display: inline-block; padding: 4px 14px; border-radius: 20px;
+    font-weight: 700; font-size: 14px;
+    background: rgba(99,102,241,0.15); color: #818cf8;
+    margin-right: 10px;
+}
+.version-block.major .version-tag { background: rgba(34,197,94,0.15); color: var(--accent2); }
+.version-title { font-size: 20px; font-weight: 700; display: inline; }
+.version-date { color: var(--muted); font-size: 13px; margin-left: 8px; }
+
+.version-card {
+    background: rgba(28,28,42,0.7);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+}
+.version-desc { color: var(--muted); font-size: 14px; margin-bottom: 16px; }
+
+.change-list { list-style: none; }
+.change-list li {
+    position: relative;
+    padding-left: 20px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: var(--ink);
+}
+.change-list li::before {
+    content: '▸';
+    position: absolute; left: 0; top: 0;
+    color: var(--accent);
+    font-weight: 700;
+}
+.version-block.major .change-list li::before { color: var(--accent2); }
+
+.change-category {
+    font-size: 13px; font-weight: 700; color: var(--accent3);
+    margin: 12px 0 6px; text-transform: uppercase; letter-spacing: 0.05em;
+}
+
+/* Stats */
+.stats-row {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    margin: 32px 0;
+}
+.stat-box {
+    background: rgba(28,28,42,0.7);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    padding: 20px; text-align: center;
+}
+.stat-box .num {
+    font-size: 32px; font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.stat-box .label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+/* Summary table */
+.table-wrap { overflow-x: auto; max-height: 700px; overflow-y: auto; margin: 20px 0; border-radius: var(--radius); border: 1px solid var(--rule); }
+table { width: 100%; border-collapse: collapse; min-width: 600px; }
+th { background: var(--bg3); padding: 12px 16px; text-align: left; font-size: 14px; font-weight: 700; color: #818cf8; border-bottom: 1px solid var(--rule); position: sticky; top: 0; }
+td { padding: 12px 16px; font-size: 14px; border-bottom: 1px solid var(--rule); color: var(--ink); }
+tr:last-child td { border-bottom: none; }
+.ver-cell { font-weight: 700; color: #818cf8; }
+.ver-cell.major { color: var(--accent2); }
+
+/* Footer */
+footer { padding: 40px 0 60px; text-align: center; }
+footer p { color: var(--muted); font-size: 14px; }
+
+.divider { height: 1px; background: linear-gradient(90deg, transparent, var(--rule), transparent); margin: 40px 0; }
+
+h2 { font-size: 26px; font-weight: 700; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 2px solid var(--accent); display: inline-block; }
+section { padding: 20px 0; }
+
+@media (max-width: 600px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .hero h1 { font-size: 28px; }
+    .version-title { font-size: 18px; display: block; }
+    .version-date { margin-left: 0; display: block; margin-top: 4px; }
+}
+</style>
+<style data-trae-edit-ui="true" id="trae-previewer-tools-styles">:root {
+  --trae-layer-image-download: 89990;
+  --trae-layer-browser-inspect-overlay: 90000;
+  --trae-layer-browser-inspect-highlight: 90010;
+  --trae-layer-browser-inspect-action: 90020;
+  --trae-layer-text-selection-action: 90030;
+  --trae-layer-edit-tooltip: 100095;
+}
+:root,
+[data-trae-theme='dark'] {
+  --trae-bg-base-default: #171717;
+  --trae-bg-menu: #222427;
+  --trae-bg-overlay-l1: rgba(255, 255, 255, 0.04);
+  --trae-bg-overlay-l2: rgba(255, 255, 255, 0.08);
+  --trae-bg-overlay-l3: rgba(255, 255, 255, 0.12);
+  --trae-bg-overlay-l4: rgba(255, 255, 255, 0.16);
+  --trae-bg-invert: #f5f9fe;
+  --trae-bg-invert-hover: #e8ecf0;
+  --trae-bg-invert-active: #dce0e4;
+  --trae-bg-invert-disabled: rgba(224, 226, 242, 0.12);
+  --bg-bg-brand-disabled: rgba(75, 63, 227, 0.35);
+  --bg-bg-brand-popup: rgba(106, 111, 255, 0.15);
+  --trae-border-l1: #e0e2f217;
+  --trae-border-l2: rgba(255, 255, 255, 0.12);
+  --trae-border-l3: rgba(255, 255, 255, 0.08);
+  --trae-border-neutral-l3: rgba(229, 229, 229, 0.20);
+  --trae-border-brand: #6a6fff;
+  --trae-text-default: #f5f9fe;
+  --trae-text-default-hover: #f5f9fe;
+  --trae-text-default-active: #f5f9fe;
+  --trae-text-secondary: rgba(245, 249, 254, 0.5);
+  --trae-text-tertiary: rgba(245, 249, 254, 0.4);
+  --trae-text-disabled: #666b75;
+  --trae-text-onaccent: #222427;
+  --trae-icon-default: #f5f9fe;
+  --trae-icon-secondary: rgba(245, 249, 254, 0.5);
+  --trae-icon-brand: #6a6fff;
+  --icon-icon-brand: var(--trae-icon-brand);
+  --trae-icon-onaccent: #222427;
+  --trae-status-success: #22c55e;
+  --trae-status-primary: #3b82f6;
+  --trae-status-primary-default: #387bff;
+  --trae-status-primary-surface-l1: rgba(53, 121, 255, 0.18);
+  --trae-status-success-default: #33c192;
+  --trae-status-success-surface-l1: rgba(0, 165, 110, 0.18);
+  --trae-status-error-default: #f65a5a;
+  --trae-status-error-surface-l1: rgba(246, 70, 70, 0.18);
+  --trae-annotation-marker-bg: #4b3fe3;
+  --trae-annotation-marker-text: #ffffff;
+  --trae-annotation-region-border: var(--trae-status-primary-default);
+  --trae-region-outside-mask-bg: rgba(0, 0, 0, 0.32);
+  --trae-panel-shadow: 0px 6px 24px -1px rgba(0, 0, 0, 0.16);
+  --trae-floating-shadow: 0px 2px 8px 0px rgba(0, 0, 0, 0.2);
+  --trae-shadow-elevation-50: 0 1px 2px -1px rgba(0, 0, 0, 0.45);
+  --text-text-default: var(--trae-text-default);
+  --text-text-onaccent: var(--trae-text-onaccent);
+  --bg-bg-menu: var(--trae-bg-menu);
+  --bg-bg-white: var(--trae-bg-menu);
+  --bg-bg-invert: var(--trae-bg-invert);
+  --bg-bg-invert-disabled: var(--trae-bg-invert-disabled);
+  --bg-bg-overlay-l1: var(--trae-bg-overlay-l1);
+  --bg-bg-overlay-l2: var(--trae-bg-overlay-l2);
+  --bg-bg-overlay-l3: var(--trae-bg-overlay-l3);
+  --border-border-neutral-l1: var(--trae-border-l1);
+  --border-border-brand: var(--trae-border-brand);
+  --border-border-brand-half: rgba(106, 111, 255, 0.4);
+  --status-error-default: var(--trae-status-error-default);
+  --status-error-surface-l1: var(--trae-status-error-surface-l1);
+  --radius-radius-md-12: 12px;
+  --spacers-spacer-0: 0;
+  --spacers-spacer-6: 6px;
+}
+
+[data-trae-theme='light'] {
+  --trae-bg-base-default: #fafafa;
+  --trae-bg-menu: #ffffff;
+  --trae-bg-overlay-l1: rgba(0, 0, 0, 0.04);
+  --trae-bg-overlay-l2: rgba(0, 0, 0, 0.06);
+  --trae-bg-overlay-l3: rgba(0, 0, 0, 0.08);
+  --trae-bg-overlay-l4: rgba(0, 0, 0, 0.12);
+  --trae-bg-invert: #1f2328;
+  --trae-bg-invert-hover: #32383f;
+  --trae-bg-invert-active: #444d56;
+  --trae-bg-invert-disabled: rgba(115, 115, 115, 0.20);
+  --bg-bg-brand-disabled: rgba(75, 63, 227, 0.22);
+  --bg-bg-brand-popup: rgba(170, 183, 255, 0.36);
+  --trae-border-l1: rgba(0, 0, 0, 0.1);
+  --trae-border-l2: rgba(0, 0, 0, 0.12);
+  --trae-border-l3: rgba(0, 0, 0, 0.08);
+  --trae-border-neutral-l3: rgba(115, 115, 115, 0.36);
+  --trae-border-brand: #4b3fe3;
+  --trae-text-default: #1f2328;
+  --trae-text-default-hover: #111214;
+  --trae-text-default-active: #111214;
+  --trae-text-secondary: rgba(31, 35, 40, 0.5);
+  --trae-text-tertiary: rgba(31, 35, 40, 0.4);
+  --trae-text-disabled: #a1a1a1;
+  --trae-text-onaccent: #ffffff;
+  --trae-icon-default: #1f2328;
+  --trae-icon-secondary: rgba(31, 35, 40, 0.5);
+  --trae-icon-brand: #4b3fe3;
+  --icon-icon-brand: var(--trae-icon-brand);
+  --trae-icon-onaccent: #ffffff;
+  --trae-status-success: #22c55e;
+  --trae-status-primary: #3b82f6;
+  --trae-status-primary-default: #2f74ff;
+  --trae-status-primary-surface-l1: rgba(47, 116, 255, 0.12);
+  --trae-status-success-default: #15a877;
+  --trae-status-success-surface-l1: rgba(64, 176, 139, 0.12);
+  --trae-status-error-default: #e8463a;
+  --trae-status-error-surface-l1: rgba(232, 70, 58, 0.12);
+  --trae-annotation-marker-bg: #4b3fe3;
+  --trae-annotation-marker-text: #ffffff;
+  --trae-annotation-region-border: var(--trae-status-primary-default);
+  --trae-region-outside-mask-bg: rgba(0, 0, 0, 0.18);
+  --trae-panel-shadow: 0px 6px 24px -1px rgba(24, 24, 24, 0.06);
+  --trae-floating-shadow: 0px 2px 8px 0px rgba(24, 24, 24, 0.2);
+  --trae-shadow-elevation-50: 0 1px 2px -1px rgba(24, 24, 24, 0.08);
+  --text-text-default: var(--trae-text-default);
+  --text-text-onaccent: var(--trae-text-onaccent);
+  --bg-bg-menu: var(--trae-bg-menu);
+  --bg-bg-white: var(--trae-bg-menu);
+  --bg-bg-invert: var(--trae-bg-invert);
+  --bg-bg-invert-disabled: var(--trae-bg-invert-disabled);
+  --bg-bg-overlay-l1: var(--trae-bg-overlay-l1);
+  --bg-bg-overlay-l2: var(--trae-bg-overlay-l2);
+  --bg-bg-overlay-l3: var(--trae-bg-overlay-l3);
+  --border-border-neutral-l1: var(--trae-border-l1);
+  --border-border-brand: var(--trae-border-brand);
+  --border-border-brand-half: rgba(75, 63, 227, 0.4);
+  --status-error-default: var(--trae-status-error-default);
+  --status-error-surface-l1: var(--trae-status-error-surface-l1);
+  --radius-radius-md-12: 12px;
+  --spacers-spacer-0: 0;
+  --spacers-spacer-6: 6px;
+}
+
+@keyframes trae-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes trae-edit-bar-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes trae-edit-bar-leave {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+@keyframes trae-edit-panel-leave {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+.trae-edit-mode-active:not(.trae-edit-mode-dragging) body *:not([data-trae-edit-ui]):not([data-trae-edit-ui] *) {
+  transition: none !important;
+  animation-play-state: paused !important;
+}
+
+.trae-edit-mode-reorder-hit-test [data-trae-edit-ui]:not(.trae-edit-pointer-shield):not(.trae-edit-panel),
+.trae-edit-mode-reorder-hit-test [data-trae-edit-ui]:not(.trae-edit-pointer-shield):not(.trae-edit-panel) * {
+  pointer-events: none !important;
+}
+
+.trae-browser-inspect-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: var(--trae-layer-browser-inspect-overlay);
+  pointer-events: auto;
+  background: transparent;
+}
+
+.trae-browser-inspect-highlight-box {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: var(--trae-layer-browser-inspect-highlight);
+  display: none;
+}
+
+.trae-browser-inspect-highlight-tag {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  height: 18px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  border-radius: 4px;
+  background-color: var(--trae-status-success-default);
+  color: var(--trae-text-onaccent);
+  font-size: 12px;
+  font-weight: 400;
+  display: none;
+  align-items: center;
+  z-index: var(--trae-layer-browser-inspect-action);
+}
+
+.trae-browser-inspect-highlight-box-show {
+  display: flex;
+}
+
+.trae-browser-inspect-highlight-tag.trae-browser-inspect-highlight-box-show {
+  display: none;
+}
+
+.trae-browser-inspect-select-button.trae-browser-inspect-highlight-box-show {
+  display: block !important;
+}
+
+.trae-browser-inspect-select-button {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: none;
+  z-index: var(--trae-layer-browser-inspect-action);
+}
+
+.trae-browser-inspect-select-highlight-box {
+  background: transparent !important;
+}
+
+.trae-browser-inspect-select-highlight-box .trae-browser-inspect-highlight-tag {
+  background-color: var(--trae-status-success-default);
+}
+
+.trae-add-to-chat-card {
+  display: block;
+  overflow: hidden;
+  background: var(--trae-bg-menu);
+  border: 1px solid var(--trae-border-l1);
+  border-radius: 8px;
+  box-shadow: var(--trae-floating-shadow);
+  transition:
+    width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.trae-add-to-chat-content {
+  position: relative;
+  width: max-content;
+}
+
+.trae-fade-exit {
+  opacity: 0;
+  transition: opacity 0.15s ease-out;
+}
+
+.trae-fade-enter {
+  opacity: 1;
+  transition: opacity 0.2s ease-in;
+}
+
+.trae-buttons-view {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  background: transparent;
+}
+
+.trae-action-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+.trae-action-button:hover {
+  background: var(--trae-bg-overlay-l2);
+}
+
+.trae-action-button:active {
+  background: var(--trae-bg-overlay-l3);
+}
+
+.trae-action-button:focus-visible {
+  outline: 2px solid var(--trae-status-primary);
+  outline-offset: 1px;
+}
+
+.trae-action-button-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--trae-icon-default);
+  flex-shrink: 0;
+}
+
+.trae-action-button-title {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--trae-text-default);
+  white-space: nowrap;
+}
+
+.trae-edit-toolbar-button-active {
+  background: var(--bg-bg-brand-disabled, rgba(75, 63, 227, 0.22)) !important;
+  color: var(--icon-icon-brand, #4b3fe3) !important;
+  font-weight: bold !important;
+}
+
+.trae-edit-toolbar-button-active:hover {
+  background: var(--bg-bg-brand-popup, rgba(170, 183, 255, 0.36)) !important;
+}
+
+.trae-edit-toolbar button[data-action='alignment-dropdown']:hover,
+.trae-edit-toolbar button[data-action='text-align-dropdown']:hover,
+.trae-edit-toolbar button[data-action='font-decrease']:hover,
+.trae-edit-toolbar button[data-action='font-increase']:hover,
+.trae-edit-toolbar button[data-action^='align-']:hover {
+  border-radius: 8px;
+  background: var(--bg-bg-overlay-l1, rgba(115, 115, 115, 0.08)) !important;
+}
+
+.trae-edit-toolbar button[data-action='alignment-dropdown']:active,
+.trae-edit-toolbar button[data-action='text-align-dropdown']:active,
+.trae-edit-toolbar button[data-action='font-decrease']:active,
+.trae-edit-toolbar button[data-action='font-increase']:active,
+.trae-edit-toolbar button[data-action^='align-']:active {
+  border-radius: 8px;
+  background: var(--bg-bg-overlay-l2, rgba(115, 115, 115, 0.12)) !important;
+}
+
+.trae-comment-input {
+  background: transparent;
+  color: var(--trae-text-default);
+  caret-color: var(--trae-text-default);
+}
+
+.trae-comment-input::placeholder {
+  color: var(--trae-text-tertiary);
+}
+
+.trae-point-edit-bar,
+.trae-point-comment-input-bar,
+.trae-comment-only-panel {
+  transform-origin: top center;
+  will-change: opacity, transform;
+}
+
+.trae-edit-panel:not(.trae-edit-panel-leave) {
+  pointer-events: auto !important;
+}
+
+.trae-edit-bar-enter {
+  animation: trae-edit-bar-enter var(--transition-normal, 0.18s cubic-bezier(0.2, 0, 0, 1)) both;
+}
+
+.trae-edit-bar-leave {
+  pointer-events: none;
+  animation: trae-edit-bar-leave var(--transition-fast, 0.14s ease) both;
+}
+
+.trae-edit-panel-leave {
+  pointer-events: none;
+  animation: trae-edit-panel-leave var(--transition-fast, 0.14s ease) both;
+}
+
+.trae-edit-panel [data-trae-tooltip] {
+  position: relative;
+}
+
+.trae-edit-panel [data-trae-tooltip]::after {
+  content: attr(data-trae-tooltip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  z-index: var(--trae-layer-edit-tooltip);
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--trae-bg-invert, var(--bg-bg-invert));
+  color: var(--trae-text-onaccent, var(--text-text-onaccent));
+  box-shadow: var(--trae-floating-shadow);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: 0.039px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-sizing: border-box;
+  opacity: 0;
+  transform: translateX(-50%);
+  visibility: hidden;
+}
+
+.trae-edit-panel [data-trae-tooltip]::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 5px);
+  z-index: var(--trae-layer-edit-tooltip);
+  width: 8px;
+  height: 4px;
+  background: var(--trae-bg-invert, var(--bg-bg-invert));
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  transform: translateX(-50%);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.trae-edit-panel [data-trae-tooltip]:hover::after,
+.trae-edit-panel [data-trae-tooltip]:focus-visible::after,
+.trae-edit-panel [data-trae-tooltip]:hover::before,
+.trae-edit-panel [data-trae-tooltip]:focus-visible::before {
+  opacity: 1;
+  visibility: visible;
+}
+
+.trae-comment-btn {
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.trae-comment-btn:disabled {
+  cursor: not-allowed;
+}
+
+.trae-comment-btn:focus-visible {
+  outline: 2px solid var(--trae-status-primary);
+  outline-offset: 1px;
+}
+
+.trae-comment-btn-primary {
+  background: var(--trae-bg-invert);
+  color: var(--trae-text-onaccent);
+}
+
+.trae-comment-btn-primary:hover:not(:disabled) {
+  background: var(--trae-bg-invert-hover);
+}
+
+.trae-comment-btn-primary:active:not(:disabled) {
+  background: var(--trae-bg-invert-active);
+}
+
+.trae-comment-btn-primary:disabled {
+  background: var(--trae-bg-invert-disabled);
+  color: var(--trae-text-disabled);
+}
+
+.trae-comment-btn-secondary {
+  background: var(--trae-bg-overlay-l2);
+  color: var(--trae-text-default);
+}
+
+.trae-comment-btn-secondary:hover:not(:disabled) {
+  background: var(--trae-bg-overlay-l3);
+}
+
+.trae-comment-btn-secondary:active:not(:disabled) {
+  background: var(--trae-bg-overlay-l4);
+}
+
+.trae-comment-btn-secondary:disabled {
+  background: var(--trae-bg-overlay-l2);
+  color: var(--trae-text-disabled);
+}
+
+.trae-comment-btn-text {
+  background: transparent;
+  color: var(--trae-text-default);
+}
+
+.trae-comment-btn-text:hover:not(:disabled) {
+  border-radius: 8px;
+  background: var(--bg-bg-overlay-l1, var(--trae-bg-overlay-l1));
+  color: var(--trae-text-default-hover);
+}
+
+.trae-comment-btn-text:active:not(:disabled) {
+  border-radius: 8px;
+  background: var(--trae-bg-overlay-l2);
+  color: var(--trae-text-default-active);
+}
+
+.trae-comment-btn-text:disabled {
+  background: transparent;
+  color: var(--trae-text-disabled);
+}
+
+.trae-marking-btn {
+  justify-content: center;
+}
+
+.trae-marking-btn:hover:not(:disabled) {
+  background: var(--trae-bg-overlay-l1) !important;
+}
+
+.trae-marking-btn-active {
+  background: var(--bg-bg-brand-disabled, rgba(75, 63, 227, 0.22)) !important;
+  color: var(--icon-icon-brand, var(--trae-icon-brand)) !important;
+}
+
+.trae-marking-btn-active:hover {
+  background: var(--bg-bg-brand-popup, rgba(170, 183, 255, 0.36)) !important;
+  color: var(--icon-icon-brand, var(--trae-icon-brand)) !important;
+}
+
+.trae-marking-btn:active:not(:disabled) {
+  background: var(--trae-bg-overlay-l2) !important;
+}
+
+.trae-marking-btn:disabled {
+  color: var(--trae-text-disabled) !important;
+  cursor: not-allowed !important;
+}
+
+.trae-action-button-shortcut {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--trae-icon-secondary);
+  flex-shrink: 0;
+}
+
+.trae-shortcut-container {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.trae-shortcut-key {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 12px;
+  color: var(--trae-icon-secondary);
+}
+
+.trae-add-to-chat-divider {
+  width: 2px;
+  height: 12px;
+  padding: 0 6px;
+  box-sizing: content-box;
+  background-clip: content-box;
+  background-color: var(--trae-border-l2);
+  flex-shrink: 0;
+}
+
+.trae-editor-view {
+  display: flex;
+  flex-direction: column;
+  width: 320px;
+  padding: 8px;
+  background: transparent;
+}
+
+.trae-editor-text-container {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  background: var(--trae-bg-overlay-l1);
+  border: 1px solid var(--trae-border-l3);
+  border-radius: 4px;
+  gap: 8px;
+}
+
+.trae-editor-textarea {
+  flex: 1;
+  padding: 0 2px;
+  border: none;
+  background: transparent;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--trae-text-default);
+  resize: none;
+  outline: none;
+  overflow-y: auto;
+  max-height: 140px;
+}
+
+.trae-editor-textarea::placeholder {
+  color: var(--trae-text-tertiary);
+}
+
+.trae-editor-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition:
+    max-height 0.2s ease-out,
+    opacity 0.2s ease-out,
+    margin-top 0.2s ease-out;
+}
+
+.trae-editor-action-bar-visible {
+  max-height: 32px;
+  opacity: 1;
+  margin-top: 8px;
+}
+
+.trae-editor-cancel-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  padding: 0 4px;
+  background: var(--trae-bg-overlay-l2);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.trae-editor-cancel-button:hover {
+  background: var(--trae-bg-overlay-l3);
+}
+
+.trae-editor-cancel-button:active {
+  background: var(--trae-bg-overlay-l3);
+}
+
+.trae-editor-cancel-button:focus-visible {
+  outline: 2px solid var(--trae-status-primary);
+  outline-offset: 1px;
+}
+
+.trae-editor-cancel-text {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--trae-text-default);
+  white-space: nowrap;
+  padding: 0 4px;
+}
+
+.trae-editor-submit-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  padding: 0 8px;
+  background: var(--trae-bg-invert);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.trae-editor-submit-button:hover {
+  background: var(--trae-bg-invert-hover);
+}
+
+.trae-editor-submit-button:active {
+  background: var(--trae-bg-invert-active);
+}
+
+.trae-editor-submit-button:focus-visible {
+  outline: 2px solid var(--trae-status-primary);
+  outline-offset: 1px;
+}
+
+.trae-editor-submit-text {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--trae-text-onaccent);
+  white-space: nowrap;
+  padding: 0 4px;
+}
+
+.trae-editor-submit-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  color: var(--trae-icon-onaccent);
+  flex-shrink: 0;
+}
+
+.trae-success-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 12px;
+  height: 32px;
+  white-space: nowrap;
+}
+
+.trae-success-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--trae-status-success);
+  flex-shrink: 0;
+}
+
+.trae-success-text {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--trae-text-default);
+  user-select: none;
+}
+</style><style data-trae-pptx-captured-css="true">@font-face { font-family: NotoSansSC; src: url("./_shared/fonts/NotoSansSC-Regular.ttf") format("truetype"); font-weight: 400; }
+@font-face { font-family: NotoSansSC; src: url("./_shared/fonts/NotoSansSC-Bold.ttf") format("truetype"); font-weight: 700; }
+:root { --bg: #0a0a0f; --bg2: #14141e; --bg3: #1c1c2a; --ink: #e8e8f0; --muted: #8888a0; --rule: #2a2a3e; --accent: #6366f1; --accent2: #22c55e; --accent3: #f59e0b; --danger: #ef4444; --radius: 12px; --radius-lg: 20px; }
+* { margin: 0px; padding: 0px; box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: NotoSansSC, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.8; font-size: 16px; overflow-x: hidden; }
+body::before { content: ""; position: fixed; inset: 0px; background: radial-gradient(at 20% 0%, rgba(99, 102, 241, 0.08) 0%, transparent 50%), radial-gradient(at 80% 80%, rgba(34, 197, 94, 0.05) 0%, transparent 50%); pointer-events: none; z-index: 0; }
+.container { max-width: 860px; margin: 0px auto; padding: 0px 24px; position: relative; z-index: 1; }
+.hero { text-align: center; padding: 60px 0px 40px; }
+.hero h1 { font-size: 36px; font-weight: 700; background-image: ; background-position-x: ; background-position-y: ; background-size: ; background-repeat: ; background-attachment: ; background-origin: ; background-color: ; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 8px; }
+.hero .subtitle { font-size: 18px; color: var(--muted); }
+.badge-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 24px; }
+.badge { background: var(--bg3); border: 1px solid var(--rule); border-radius: 24px; padding: 6px 16px; font-size: 13px; color: var(--muted); }
+.badge.green { border-color: rgba(34, 197, 94, 0.3); color: var(--accent2); }
+.badge.blue { border-color: rgba(99, 102, 241, 0.3); color: rgb(129, 140, 248); }
+.timeline { position: relative; padding: 20px 0px; }
+.timeline::before { content: ""; position: absolute; left: 28px; top: 0px; bottom: 0px; width: 2px; background: linear-gradient(180deg, var(--accent), var(--accent2)); }
+.version-block { position: relative; padding-left: 72px; margin-bottom: 32px; }
+.version-dot { position: absolute; left: 18px; top: 6px; width: 22px; height: 22px; background: var(--accent); border: 3px solid var(--bg); border-radius: 50%; box-shadow: 0 0 0 2px var(--accent); }
+.version-block.major .version-dot { background: var(--accent2); box-shadow: 0 0 0 2px var(--accent2); }
+.version-header { margin-bottom: 12px; }
+.version-tag { display: inline-block; padding: 4px 14px; border-radius: 20px; font-weight: 700; font-size: 14px; background: rgba(99, 102, 241, 0.15); color: rgb(129, 140, 248); margin-right: 10px; }
+.version-block.major .version-tag { background: rgba(34, 197, 94, 0.15); color: var(--accent2); }
+.version-title { font-size: 20px; font-weight: 700; display: inline; }
+.version-date { color: var(--muted); font-size: 13px; margin-left: 8px; }
+.version-card { background: rgba(28, 28, 42, 0.7); backdrop-filter: blur(10px); border: 1px solid var(--rule); border-radius: var(--radius); padding: 20px 24px; }
+.version-desc { color: var(--muted); font-size: 14px; margin-bottom: 16px; }
+.change-list { list-style: none; }
+.change-list li { position: relative; padding-left: 20px; margin-bottom: 8px; font-size: 14px; color: var(--ink); }
+.change-list li::before { content: "▸"; position: absolute; left: 0px; top: 0px; color: var(--accent); font-weight: 700; }
+.version-block.major .change-list li::before { color: var(--accent2); }
+.change-category { font-size: 13px; font-weight: 700; color: var(--accent3); margin: 12px 0px 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 32px 0px; }
+.stat-box { background: rgba(28, 28, 42, 0.7); border: 1px solid var(--rule); border-radius: var(--radius); padding: 20px; text-align: center; }
+.stat-box .num { font-size: 32px; font-weight: 700; background-image: ; background-position-x: ; background-position-y: ; background-size: ; background-repeat: ; background-attachment: ; background-origin: ; background-color: ; -webkit-text-fill-color: transparent; background-clip: text; }
+.stat-box .label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.table-wrap { overflow: auto; max-height: 700px; margin: 20px 0px; border-radius: var(--radius); border: 1px solid var(--rule); }
+table { width: 100%; border-collapse: collapse; min-width: 600px; }
+th { background: var(--bg3); padding: 12px 16px; text-align: left; font-size: 14px; font-weight: 700; color: rgb(129, 140, 248); border-bottom: 1px solid var(--rule); position: sticky; top: 0px; }
+td { padding: 12px 16px; font-size: 14px; border-bottom: 1px solid var(--rule); color: var(--ink); }
+tr:last-child td { border-bottom: none; }
+.ver-cell { font-weight: 700; color: rgb(129, 140, 248); }
+.ver-cell.major { color: var(--accent2); }
+footer { padding: 40px 0px 60px; text-align: center; }
+footer p { color: var(--muted); font-size: 14px; }
+.divider { height: 1px; background: linear-gradient(90deg, transparent, var(--rule), transparent); margin: 40px 0px; }
+h2 { font-size: 26px; font-weight: 700; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 2px solid var(--accent); display: inline-block; }
+section { padding: 20px 0px; }
+@media (max-width: 600px) {
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .hero h1 { font-size: 28px; }
+  .version-title { font-size: 18px; display: block; }
+  .version-date { margin-left: 0px; display: block; margin-top: 4px; }
+}
+:root { --trae-layer-image-download: 89990; --trae-layer-browser-inspect-overlay: 90000; --trae-layer-browser-inspect-highlight: 90010; --trae-layer-browser-inspect-action: 90020; --trae-layer-text-selection-action: 90030; --trae-layer-edit-tooltip: 100095; }
+:root, [data-trae-theme="dark"] { --trae-bg-base-default: #171717; --trae-bg-menu: #222427; --trae-bg-overlay-l1: rgba(255, 255, 255, 0.04); --trae-bg-overlay-l2: rgba(255, 255, 255, 0.08); --trae-bg-overlay-l3: rgba(255, 255, 255, 0.12); --trae-bg-overlay-l4: rgba(255, 255, 255, 0.16); --trae-bg-invert: #f5f9fe; --trae-bg-invert-hover: #e8ecf0; --trae-bg-invert-active: #dce0e4; --trae-bg-invert-disabled: rgba(224, 226, 242, 0.12); --bg-bg-brand-disabled: rgba(75, 63, 227, 0.35); --bg-bg-brand-popup: rgba(106, 111, 255, 0.15); --trae-border-l1: #e0e2f217; --trae-border-l2: rgba(255, 255, 255, 0.12); --trae-border-l3: rgba(255, 255, 255, 0.08); --trae-border-neutral-l3: rgba(229, 229, 229, 0.20); --trae-border-brand: #6a6fff; --trae-text-default: #f5f9fe; --trae-text-default-hover: #f5f9fe; --trae-text-default-active: #f5f9fe; --trae-text-secondary: rgba(245, 249, 254, 0.5); --trae-text-tertiary: rgba(245, 249, 254, 0.4); --trae-text-disabled: #666b75; --trae-text-onaccent: #222427; --trae-icon-default: #f5f9fe; --trae-icon-secondary: rgba(245, 249, 254, 0.5); --trae-icon-brand: #6a6fff; --icon-icon-brand: var(--trae-icon-brand); --trae-icon-onaccent: #222427; --trae-status-success: #22c55e; --trae-status-primary: #3b82f6; --trae-status-primary-default: #387bff; --trae-status-primary-surface-l1: rgba(53, 121, 255, 0.18); --trae-status-success-default: #33c192; --trae-status-success-surface-l1: rgba(0, 165, 110, 0.18); --trae-status-error-default: #f65a5a; --trae-status-error-surface-l1: rgba(246, 70, 70, 0.18); --trae-annotation-marker-bg: #4b3fe3; --trae-annotation-marker-text: #ffffff; --trae-annotation-region-border: var(--trae-status-primary-default); --trae-region-outside-mask-bg: rgba(0, 0, 0, 0.32); --trae-panel-shadow: 0px 6px 24px -1px rgba(0, 0, 0, 0.16); --trae-floating-shadow: 0px 2px 8px 0px rgba(0, 0, 0, 0.2); --trae-shadow-elevation-50: 0 1px 2px -1px rgba(0, 0, 0, 0.45); --text-text-default: var(--trae-text-default); --text-text-onaccent: var(--trae-text-onaccent); --bg-bg-menu: var(--trae-bg-menu); --bg-bg-white: var(--trae-bg-menu); --bg-bg-invert: var(--trae-bg-invert); --bg-bg-invert-disabled: var(--trae-bg-invert-disabled); --bg-bg-overlay-l1: var(--trae-bg-overlay-l1); --bg-bg-overlay-l2: var(--trae-bg-overlay-l2); --bg-bg-overlay-l3: var(--trae-bg-overlay-l3); --border-border-neutral-l1: var(--trae-border-l1); --border-border-brand: var(--trae-border-brand); --border-border-brand-half: rgba(106, 111, 255, 0.4); --status-error-default: var(--trae-status-error-default); --status-error-surface-l1: var(--trae-status-error-surface-l1); --radius-radius-md-12: 12px; --spacers-spacer-0: 0; --spacers-spacer-6: 6px; }
+[data-trae-theme="light"] { --trae-bg-base-default: #fafafa; --trae-bg-menu: #ffffff; --trae-bg-overlay-l1: rgba(0, 0, 0, 0.04); --trae-bg-overlay-l2: rgba(0, 0, 0, 0.06); --trae-bg-overlay-l3: rgba(0, 0, 0, 0.08); --trae-bg-overlay-l4: rgba(0, 0, 0, 0.12); --trae-bg-invert: #1f2328; --trae-bg-invert-hover: #32383f; --trae-bg-invert-active: #444d56; --trae-bg-invert-disabled: rgba(115, 115, 115, 0.20); --bg-bg-brand-disabled: rgba(75, 63, 227, 0.22); --bg-bg-brand-popup: rgba(170, 183, 255, 0.36); --trae-border-l1: rgba(0, 0, 0, 0.1); --trae-border-l2: rgba(0, 0, 0, 0.12); --trae-border-l3: rgba(0, 0, 0, 0.08); --trae-border-neutral-l3: rgba(115, 115, 115, 0.36); --trae-border-brand: #4b3fe3; --trae-text-default: #1f2328; --trae-text-default-hover: #111214; --trae-text-default-active: #111214; --trae-text-secondary: rgba(31, 35, 40, 0.5); --trae-text-tertiary: rgba(31, 35, 40, 0.4); --trae-text-disabled: #a1a1a1; --trae-text-onaccent: #ffffff; --trae-icon-default: #1f2328; --trae-icon-secondary: rgba(31, 35, 40, 0.5); --trae-icon-brand: #4b3fe3; --icon-icon-brand: var(--trae-icon-brand); --trae-icon-onaccent: #ffffff; --trae-status-success: #22c55e; --trae-status-primary: #3b82f6; --trae-status-primary-default: #2f74ff; --trae-status-primary-surface-l1: rgba(47, 116, 255, 0.12); --trae-status-success-default: #15a877; --trae-status-success-surface-l1: rgba(64, 176, 139, 0.12); --trae-status-error-default: #e8463a; --trae-status-error-surface-l1: rgba(232, 70, 58, 0.12); --trae-annotation-marker-bg: #4b3fe3; --trae-annotation-marker-text: #ffffff; --trae-annotation-region-border: var(--trae-status-primary-default); --trae-region-outside-mask-bg: rgba(0, 0, 0, 0.18); --trae-panel-shadow: 0px 6px 24px -1px rgba(24, 24, 24, 0.06); --trae-floating-shadow: 0px 2px 8px 0px rgba(24, 24, 24, 0.2); --trae-shadow-elevation-50: 0 1px 2px -1px rgba(24, 24, 24, 0.08); --text-text-default: var(--trae-text-default); --text-text-onaccent: var(--trae-text-onaccent); --bg-bg-menu: var(--trae-bg-menu); --bg-bg-white: var(--trae-bg-menu); --bg-bg-invert: var(--trae-bg-invert); --bg-bg-invert-disabled: var(--trae-bg-invert-disabled); --bg-bg-overlay-l1: var(--trae-bg-overlay-l1); --bg-bg-overlay-l2: var(--trae-bg-overlay-l2); --bg-bg-overlay-l3: var(--trae-bg-overlay-l3); --border-border-neutral-l1: var(--trae-border-l1); --border-border-brand: var(--trae-border-brand); --border-border-brand-half: rgba(75, 63, 227, 0.4); --status-error-default: var(--trae-status-error-default); --status-error-surface-l1: var(--trae-status-error-surface-l1); --radius-radius-md-12: 12px; --spacers-spacer-0: 0; --spacers-spacer-6: 6px; }
+@keyframes trae-spin { 
+  100% { transform: rotate(360deg); }
+}
+@keyframes trae-edit-bar-enter { 
+  0% { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0px) scale(1); }
+}
+@keyframes trae-edit-bar-leave { 
+  0% { opacity: 1; transform: translateY(0px) scale(1); }
+  100% { opacity: 0; transform: translateY(-4px) scale(0.98); }
+}
+@keyframes trae-edit-panel-leave { 
+  0% { opacity: 1; transform: translateY(0px) scale(1); }
+  100% { opacity: 0; transform: translateY(-4px) scale(0.98); }
+}
+.trae-edit-mode-active:not(.trae-edit-mode-dragging) body :not([data-trae-edit-ui]):not([data-trae-edit-ui] *) { transition: none !important; animation-play-state: paused !important; }
+.trae-edit-mode-reorder-hit-test [data-trae-edit-ui]:not(.trae-edit-pointer-shield):not(.trae-edit-panel), .trae-edit-mode-reorder-hit-test [data-trae-edit-ui]:not(.trae-edit-pointer-shield):not(.trae-edit-panel) * { pointer-events: none !important; }
+.trae-browser-inspect-overlay { position: fixed; top: 0px; left: 0px; width: 100%; height: 100%; z-index: var(--trae-layer-browser-inspect-overlay); pointer-events: auto; background: transparent; }
+.trae-browser-inspect-highlight-box { position: absolute; top: 0px; left: 0px; z-index: var(--trae-layer-browser-inspect-highlight); display: none; }
+.trae-browser-inspect-highlight-tag { position: absolute; left: 0px; top: 0px; height: 18px; padding: 0px 6px; box-sizing: border-box; border-radius: 4px; background-color: var(--trae-status-success-default); color: var(--trae-text-onaccent); font-size: 12px; font-weight: 400; display: none; align-items: center; z-index: var(--trae-layer-browser-inspect-action); }
+.trae-browser-inspect-highlight-box-show { display: flex; }
+.trae-browser-inspect-highlight-tag.trae-browser-inspect-highlight-box-show { display: none; }
+.trae-browser-inspect-select-button.trae-browser-inspect-highlight-box-show { display: block !important; }
+.trae-browser-inspect-select-button { position: absolute; top: 0px; left: 0px; display: none; z-index: var(--trae-layer-browser-inspect-action); }
+.trae-browser-inspect-select-highlight-box { background: transparent !important; }
+.trae-browser-inspect-select-highlight-box .trae-browser-inspect-highlight-tag { background-color: var(--trae-status-success-default); }
+.trae-add-to-chat-card { display: block; overflow: hidden; background: var(--trae-bg-menu); border: 1px solid var(--trae-border-l1); border-radius: 8px; box-shadow: var(--trae-floating-shadow); transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), height 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+.trae-add-to-chat-content { position: relative; width: max-content; }
+.trae-fade-exit { opacity: 0; transition: opacity 0.15s ease-out; }
+.trae-fade-enter { opacity: 1; transition: opacity 0.2s ease-in; }
+.trae-buttons-view { display: flex; align-items: center; gap: 6px; padding: 4px; background: transparent; }
+.trae-action-button { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: transparent; border: none; border-radius: 4px; cursor: pointer; transform: none !important; transition: none !important; animation: auto ease 0s 1 normal none running none !important; }
+.trae-action-button:hover { background: var(--trae-bg-overlay-l2); }
+.trae-action-button:active { background: var(--trae-bg-overlay-l3); }
+.trae-action-button:focus-visible { outline: 2px solid var(--trae-status-primary); outline-offset: 1px; }
+.trae-action-button-icon { display: flex; align-items: center; justify-content: center; width: 16px; height: 16px; color: var(--trae-icon-default); flex-shrink: 0; }
+.trae-action-button-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; font-weight: 500; line-height: 16px; color: var(--trae-text-default); white-space: nowrap; }
+.trae-edit-toolbar-button-active { background: var(--bg-bg-brand-disabled, rgba(75, 63, 227, 0.22)) !important; color: var(--icon-icon-brand, #4b3fe3) !important; font-weight: bold !important; }
+.trae-edit-toolbar-button-active:hover { background: var(--bg-bg-brand-popup, rgba(170, 183, 255, 0.36)) !important; }
+.trae-edit-toolbar button[data-action="alignment-dropdown"]:hover, .trae-edit-toolbar button[data-action="text-align-dropdown"]:hover, .trae-edit-toolbar button[data-action="font-decrease"]:hover, .trae-edit-toolbar button[data-action="font-increase"]:hover, .trae-edit-toolbar button[data-action^="align-"]:hover { border-radius: 8px; background: var(--bg-bg-overlay-l1, rgba(115, 115, 115, 0.08)) !important; }
+.trae-edit-toolbar button[data-action="alignment-dropdown"]:active, .trae-edit-toolbar button[data-action="text-align-dropdown"]:active, .trae-edit-toolbar button[data-action="font-decrease"]:active, .trae-edit-toolbar button[data-action="font-increase"]:active, .trae-edit-toolbar button[data-action^="align-"]:active { border-radius: 8px; background: var(--bg-bg-overlay-l2, rgba(115, 115, 115, 0.12)) !important; }
+.trae-comment-input { background: transparent; color: var(--trae-text-default); caret-color: var(--trae-text-default); }
+.trae-comment-input::placeholder { color: var(--trae-text-tertiary); }
+.trae-point-edit-bar, .trae-point-comment-input-bar, .trae-comment-only-panel { transform-origin: center top; will-change: opacity, transform; }
+.trae-edit-panel:not(.trae-edit-panel-leave) { pointer-events: auto !important; }
+.trae-edit-bar-enter { animation: trae-edit-bar-enter var(--transition-normal, 0.18s cubic-bezier(0.2, 0, 0, 1)) both; }
+.trae-edit-bar-leave { pointer-events: none; animation: trae-edit-bar-leave var(--transition-fast, 0.14s ease) both; }
+.trae-edit-panel-leave { pointer-events: none; animation: trae-edit-panel-leave var(--transition-fast, 0.14s ease) both; }
+.trae-edit-panel [data-trae-tooltip] { position: relative; }
+.trae-edit-panel [data-trae-tooltip]::after { content: attr(data-trae-tooltip); position: absolute; left: 50%; bottom: calc(100% + 8px); z-index: var(--trae-layer-edit-tooltip); padding: 6px 10px; border-radius: 6px; background: var(--trae-bg-invert, var(--bg-bg-invert)); color: var(--trae-text-onaccent, var(--text-text-onaccent)); box-shadow: var(--trae-floating-shadow); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif; font-size: 11px; font-weight: 500; line-height: 16px; letter-spacing: 0.039px; white-space: nowrap; pointer-events: none; box-sizing: border-box; opacity: 0; transform: translateX(-50%); visibility: hidden; }
+.trae-edit-panel [data-trae-tooltip]::before { content: ""; position: absolute; left: 50%; bottom: calc(100% + 5px); z-index: var(--trae-layer-edit-tooltip); width: 8px; height: 4px; background: var(--trae-bg-invert, var(--bg-bg-invert)); clip-path: polygon(0px 0px, 100% 0px, 50% 100%); transform: translateX(-50%); pointer-events: none; opacity: 0; visibility: hidden; }
+.trae-edit-panel [data-trae-tooltip]:hover::after, .trae-edit-panel [data-trae-tooltip]:focus-visible::after, .trae-edit-panel [data-trae-tooltip]:hover::before, .trae-edit-panel [data-trae-tooltip]:focus-visible::before { opacity: 1; visibility: visible; }
+.trae-comment-btn { justify-content: center; cursor: pointer; transition: background-color 0.15s; }
+.trae-comment-btn:disabled { cursor: not-allowed; }
+.trae-comment-btn:focus-visible { outline: 2px solid var(--trae-status-primary); outline-offset: 1px; }
+.trae-comment-btn-primary { background: var(--trae-bg-invert); color: var(--trae-text-onaccent); }
+.trae-comment-btn-primary:hover:not(:disabled) { background: var(--trae-bg-invert-hover); }
+.trae-comment-btn-primary:active:not(:disabled) { background: var(--trae-bg-invert-active); }
+.trae-comment-btn-primary:disabled { background: var(--trae-bg-invert-disabled); color: var(--trae-text-disabled); }
+.trae-comment-btn-secondary { background: var(--trae-bg-overlay-l2); color: var(--trae-text-default); }
+.trae-comment-btn-secondary:hover:not(:disabled) { background: var(--trae-bg-overlay-l3); }
+.trae-comment-btn-secondary:active:not(:disabled) { background: var(--trae-bg-overlay-l4); }
+.trae-comment-btn-secondary:disabled { background: var(--trae-bg-overlay-l2); color: var(--trae-text-disabled); }
+.trae-comment-btn-text { background: transparent; color: var(--trae-text-default); }
+.trae-comment-btn-text:hover:not(:disabled) { border-radius: 8px; background: var(--bg-bg-overlay-l1, var(--trae-bg-overlay-l1)); color: var(--trae-text-default-hover); }
+.trae-comment-btn-text:active:not(:disabled) { border-radius: 8px; background: var(--trae-bg-overlay-l2); color: var(--trae-text-default-active); }
+.trae-comment-btn-text:disabled { background: transparent; color: var(--trae-text-disabled); }
+.trae-marking-btn { justify-content: center; }
+.trae-marking-btn:hover:not(:disabled) { background: var(--trae-bg-overlay-l1) !important; }
+.trae-marking-btn-active { background: var(--bg-bg-brand-disabled, rgba(75, 63, 227, 0.22)) !important; color: var(--icon-icon-brand, var(--trae-icon-brand)) !important; }
+.trae-marking-btn-active:hover { background: var(--bg-bg-brand-popup, rgba(170, 183, 255, 0.36)) !important; color: var(--icon-icon-brand, var(--trae-icon-brand)) !important; }
+.trae-marking-btn:active:not(:disabled) { background: var(--trae-bg-overlay-l2) !important; }
+.trae-marking-btn:disabled { color: var(--trae-text-disabled) !important; cursor: not-allowed !important; }
+.trae-action-button-shortcut { display: flex; align-items: center; gap: 2px; color: var(--trae-icon-secondary); flex-shrink: 0; }
+.trae-shortcut-container { display: flex; align-items: center; gap: 2px; }
+.trae-shortcut-key { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; font-weight: 500; line-height: 12px; color: var(--trae-icon-secondary); }
+.trae-add-to-chat-divider { width: 2px; height: 12px; padding: 0px 6px; box-sizing: content-box; background-clip: content-box; background-color: var(--trae-border-l2); flex-shrink: 0; }
+.trae-editor-view { display: flex; flex-direction: column; width: 320px; padding: 8px; background: transparent; }
+.trae-editor-text-container { display: flex; align-items: center; padding: 8px; background: var(--trae-bg-overlay-l1); border: 1px solid var(--trae-border-l3); border-radius: 4px; gap: 8px; }
+.trae-editor-textarea { flex: 1 1 0%; padding: 0px 2px; border: none; background: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; font-weight: 400; line-height: 20px; color: var(--trae-text-default); resize: none; outline: none; overflow-y: auto; max-height: 140px; }
+.trae-editor-textarea::placeholder { color: var(--trae-text-tertiary); }
+.trae-editor-action-bar { display: flex; align-items: center; justify-content: flex-end; gap: 4px; max-height: 0px; opacity: 0; overflow: hidden; transition: max-height 0.2s ease-out, opacity 0.2s ease-out, margin-top 0.2s ease-out; }
+.trae-editor-action-bar-visible { max-height: 32px; opacity: 1; margin-top: 8px; }
+.trae-editor-cancel-button { display: flex; align-items: center; justify-content: center; height: 24px; padding: 0px 4px; background: var(--trae-bg-overlay-l2); border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.15s; }
+.trae-editor-cancel-button:hover { background: var(--trae-bg-overlay-l3); }
+.trae-editor-cancel-button:active { background: var(--trae-bg-overlay-l3); }
+.trae-editor-cancel-button:focus-visible { outline: 2px solid var(--trae-status-primary); outline-offset: 1px; }
+.trae-editor-cancel-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; font-weight: 500; line-height: 16px; color: var(--trae-text-default); white-space: nowrap; padding: 0px 4px; }
+.trae-editor-submit-button { display: flex; align-items: center; justify-content: center; height: 24px; padding: 0px 8px; background: var(--trae-bg-invert); border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.15s; }
+.trae-editor-submit-button:hover { background: var(--trae-bg-invert-hover); }
+.trae-editor-submit-button:active { background: var(--trae-bg-invert-active); }
+.trae-editor-submit-button:focus-visible { outline: 2px solid var(--trae-status-primary); outline-offset: 1px; }
+.trae-editor-submit-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; font-weight: 500; line-height: 16px; color: var(--trae-text-onaccent); white-space: nowrap; padding: 0px 4px; }
+.trae-editor-submit-icon { display: flex; align-items: center; justify-content: center; width: 12px; height: 12px; color: var(--trae-icon-onaccent); flex-shrink: 0; }
+.trae-success-view { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0px 12px; height: 32px; white-space: nowrap; }
+.trae-success-icon { display: flex; align-items: center; justify-content: center; width: 16px; height: 16px; color: var(--trae-status-success); flex-shrink: 0; }
+.trae-success-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; font-weight: 400; line-height: 18px; color: var(--trae-text-default); user-select: none; }</style></head>
+<body>
+<div class="container">
+
+<!-- Hero -->
+<div class="hero">
+    <h1>版本迭代记录</h1>
+    <p class="subtitle">生活管理面板 · 从想法到现实的完整成长轨迹</p>
+    <div class="badge-row">
+        <span class="badge green">11 个版本迭代</span>
+        <span class="badge blue">持续优化中</span>
+        <span class="badge">完全免费</span>
+    </div>
+</div>
+
+<!-- 总览统计 -->
+<div class="stats-row">
+    <div class="stat-box"><div class="num">11</div><div class="label">版本迭代</div></div>
+    <div class="stat-box"><div class="num">4</div><div class="label">重大版本</div></div>
+    <div class="stat-box"><div class="num">45+</div><div class="label">功能点</div></div>
+    <div class="stat-box"><div class="num">5</div><div class="label">底部导航（精简后）</div></div>
+</div>
+
+<div class="divider"></div>
+
+<!-- 版本时间线 -->
+<section>
+    <h2>版本时间线</h2>
+
+    <div class="timeline">
+
+        <!-- v1.0 -->
+        <div class="version-block major">
+            <div class="version-dot"></div>
+            <div class="version-header">
+                <span class="version-tag">v1.0</span>
+                <span class="version-title">初始版本 · 单用户本地版</span>
+                <span class="version-date">最初版本</span>
+            </div>
+            <div class="version-card">
+                <p class="version-desc">一切从这里开始。一个可以在电脑和平板上使用的网页应用，支持基础的生活管理功能。</p>
+
+                <div class="change-category">核心功能</div>
+                <ul class="change-list">
+                    <li>待办清单：支持添加、完成、删除，按分类和优先级管理</li>
+                    <li>计时器：倒计时模式，实时显示天/时/分/秒</li>
+                    <li>目标管理：设置目标、进度条、截止日期</li>
+                    <li>倒数日：记录重要日期，支持"距今还有"和"已经过了"</li>
+                </ul>
+
+                <div class="change-category">技术实现</div>
+                <ul class="change-list">
+                    <li>Node.js + Express 后端</li>
+                    <li>纯前端 HTML/CSS/JS，无需安装</li>
+                    <li>本地数据存储（localStorage）</li>
+                    <li>支持手机、平板、电脑多设备访问</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- v1.1 -->
+        <div class="version-block">
+            <div class="version-dot"></div>
+            <div class="version-header">
+                <span class="version-tag">v1.1</span>
+                <span class="version-title">功能扩展 · 统计与日记</span>
+                <span class="version-date">第一次功能升级</span>
+            </div>
+            <div class="version-card">
+                <p class="version-desc">根据使用反馈，增加正向计时、统计面板和日记功能，让应用更全面。</p>
+
+                <div class="change-category">新增功能</div>
+                <ul class="change-list">
+                    <li>正向计时器：除了倒计时，新增正向计时模式（记录坚持了多少天）</li>
+                    <li>统计面板：按日/周/月/年四个维度查看数据</li>
+                    <li>统计卡片：待办总数、已完成、待完成、完成率</li>
+                    <li>分类统计：按工作/生活/学习/其他分类查看分布</li>
+                    <li>优先级分布：高/中/低优先级的数量占比</li>
+                    <li>目标概览：已完成数、总数、平均进度</li>
+                    <li>日记功能：写日记、选心情 emoji、日记预览</li>
+                </ul>
+
+                <div class="change-category">体验优化</div>
+                <ul class="change-list">
+                    <li>计时器新增颜色自定义</li>
+                    <li>倒数日支持自定义 emoji</li>
+                    <li>底部导航栏优化，更方便切换</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- v2.0 -->
+        <div class="version-block major">
+            <div class="version-dot"></div>
+            <div class="version-header">
+                <span class="version-tag">v2.0</span>
+                <span class="version-title">多用户系统 · 数据隔离与保密柜</span>
+                <span class="version-date">重大版本升级</span>
+            </div>
+            <div class="version-card">
+                <p class="version-desc">从单用户升级为多用户系统，支持多人使用。加入保密柜功能，私密内容端到端加密，管理员也无法查看。</p>
+
+                <div class="change-category">多用户系统</div>
+                <ul class="change-list">
+                    <li>用户注册与登录系统（用户名 + 密码）</li>
+                    <li>JWT 令牌身份认证</li>
+                    <li>每个用户数据完全隔离，互不可见</li>
+                    <li>MongoDB 云数据库存储，数据自动同步</li>
+                    <li>第一个注册的用户自动成为管理员</li>
+                </ul>
+
+                <div class="change-category">保密柜（端到端加密）</div>
+                <ul class="change-list">
+                    <li>独立的保密柜密码（与登录密码分开）</li>
+                    <li>AES-256 浏览器端加密，服务器只存密文</li>
+                    <li>支持加密存储日记、待办、便签</li>
+                    <li>管理员也无法解密保密柜内容</li>
+                    <li>保密柜可重置（需登录密码验证，重置后内容清空）</li>
+                </ul>
+
+                <div class="change-category">管理后台</div>
+                <ul class="change-list">
+                    <li>总用户数、今日/本周/本月活跃用户统计</li>
+                    <li>今日/本周新增用户数</li>
+                    <li>用户列表：用户名、活跃状态、注册时间</li>
+                    <li>管理员可重置用户密码</li>
+                </ul>
+
+                <div class="change-category">安全升级</div>
+                <ul class="change-list">
+                    <li>密码使用 bcrypt 哈希 + 盐值存储</li>
+                    <li>HTTPS 加密传输</li>
+                    <li>所有 API 请求需身份验证</li>
+                    <li>越权访问自动拦截</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- v2.1 -->
+        <div class="version-block">
+            <div class="version-dot"></div>
+            <div class="version-header">
+                <span class="version-tag">v2.1</span>
+                <span class="version-title">密码找回 · 密保问题</span>
+                <span class="version-date">账号安全增强</span>
+            </div>
+            <div class="version-card">
+                <p class="version-desc">增加密保问题机制，用户忘记密码时可以自助找回，不需要联系管理员。</p>
+
+                <div class="change-category">新增功能</div>
+                <ul class="change-list">
+                    <li>注册时必须设置密保问题和答案（5 个预设问题可选）</li>
+                    <li>登录页新增"忘记密码？"入口</li>
+                    <li>自助找回密码：输入用户名 → 显示密保问题 → 回答正确 → 设置新密码</li>
+                    <li>密保答案同样使用 bcrypt 哈希存储，保护隐私</li>
+                </ul>
+
+                <div class="change-category">后端支持</div>
+                <ul class="change-list">
+                    <li>新增密保问题查询接口</li>
+                    <li>新增密码重置接口（需验证密保答案）</li>
+                    <li>安全限制：密保答案错误次数过多需稍后再试</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- v2.2 -->
+        <div class="version-block">
+            <div class="version-dot"></div>
+            <div class="version-header">
+                <span class="version-tag">v2.2</span>
+                <span class="version-title">密码确认 · 防止手误</span>
+                <span class="version-date">体验优化</span>
+            </div>
+            <div class="version-card">
+                <p class="version-desc">注册和重置密码时增加二次确认（输入两遍密码），避免因为手误输错密码导致登录不上。</p>
+
+                <div class="change-category">注册流程</div>
+                <ul class="change-list">
+                    <li>新增"确认密码"输入框（注册模式下显示）</li>
+                    <li>两次密码不一致时提示错误，不让提交</li>
+                    <li>错误提示清晰明确，引导用户重新输入</li>
+                </ul>
+
+                <div class="change-category">密码重置流程</div>
+                <ul class="change-list">
+                    <li>通过密保找回密码时，新密码也需要输入两遍确认</li>
+                    <li>保密柜设置密码时同样需要两遍确认</li>
+                    <li>所有涉及设置密码的场景统一加了确认机制</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- v2.3 -->
+        <div class="version-block">
+            <div class="version-dot"></div>
+            <div class="version-header">
+                <span class="version-tag">v2.3</span>
+                <span class="version-title">管理员批准重置 · 完善密码找回</span>
+                <span class="version-date">流程优化</span>
+            </div>
+            <div class="version-card">
+                <p class="version-desc">当用户连密保问题也忘了时，可以向管理员发送重置请求。管理员批准后用户自行设置新密码，保护隐私同时解决问题。</p>
+
+                <div class="change-category">用户侧</div>
+                <ul class="change-list">
+                    <li>找回密码页面底部新增"密保也忘了？找管理员重置"按钮</li>
+                    <li>点击后向管理员发送重置请求（同一用户不能重复提交）</li>
+                    <li>请求发送后显示"已向管理员发送重置请求"提示</li>
+                    <li>管理员批准后，用户重新进入找回密码可直接设置新密码（无需密保答案）</li>
+                    <li>显示"管理员已批准你的重置请求"绿色提示</li>
+                </ul>
+
+                <div class="change-category">管理员侧</div>
+                <ul class="change-list">
+                    <li>管理后台新增"密码重置请求"区块</li>
+                    <li>列出所有待处理的请求（用户名 + 提交时间）</li>
+                    <li>点击"批准重置"一键同意</li>
+                    <li>批准后请求自动标记为已处理，从列表消失</li>
+                    <li>管理员不需要知道用户新密码，保护用户隐私</li>
+                </ul>
+
+                <div class="change-category">后端数据</div>
+                <ul class="change-list">
+                    <li>新增 ResetRequest 模型，记录所有重置请求</li>
+                    <li>用户表新增 resetApproved 字段，标记批准状态</li>
+                    <li>用户设置新密码后自动清除批准状态</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- v2.4 -->
+        <div class="version-block major">
+            <div class="version-dot"></div>
+            <div class="version-header">
+                <span class="version-tag">v2.4</span>
+                <span class="version-title">待办归档 · 统计与清单分离</span>
+                <span class="version-date">体验升级</span>
+            </div>
+            <div class="version-card">
+                <p class="version-desc">解决"删除已完成待办导致统计数据消失"的痛点。已完成的待办删除后自动归档，清单变清爽但历史统计数据完整保留。同时优化管理员后台用户排序。</p>
+
+                <div class="change-category">待办归档机制</div>
+                <ul class="change-list">
+                    <li>已完成的待办删除 → 自动标记为"已归档"（不是真删）</li>
+                    <li>未完成的待办删除 → 直接删除（没完成过不影响统计）</li>
+                    <li>待办清单只显示未归档的任务，保持清爽</li>
+                    <li>待办进度条只统计当前清单内的任务</li>
+                </ul>
+
+                <div class="change-category">统计优化</div>
+                <ul class="change-list">
+                    <li>统计包含已归档的已完成待办，周/月/年数据不丢失</li>
+                    <li>"已完成"按完成时间（completedAt）判断，而非创建时间</li>
+                    <li>哪天完成的就算哪天的统计，数据更准确</li>
+                    <li>统计区间内创建 OR 完成的待办都计入总数</li>
+                    <li>完成率计算更科学合理</li>
+                </ul>
+
+                <div class="change-category">管理员后台优化</div>
+                <ul class="change-list">
+                    <li>用户列表按最后活跃时间倒序排列（最近上线的排最上面）</li>
+                    <li>显示"上次活跃：今天/昨天/3天前"等相对时间</li>
+                    <li>一眼就能看到哪些用户最近在用</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- v2.5 -->
+        <div class="version-block major">
+            <div class="version-dot"></div>
+            <div class="version-header">
+                <span class="version-tag">v2.5</span>
+                <span class="version-title">管理员权限分级 · 超级管理员机制</span>
+                <span class="version-date">权限体系升级</span>
+            </div>
+            <div class="version-card">
+                <p class="version-desc">引入超级管理员与普通管理员两级权限。超级管理员可以设置或取消其他用户的管理员权限，普通管理员只能处理密码重置。权限实时生效，无需重新登录。</p>
+
+                <div class="change-category">权限分级</div>
+                <ul class="change-list">
+                    <li>超级管理员：第一个注册的用户，拥有全部权限</li>
+                    <li>普通管理员：可查看后台、批准密码重置，但不能设置其他管理员</li>
+                    <li>超级管理员不能被取消权限（防止锁死）</li>
+                    <li>普通管理员可被超级管理员随时取消</li>
+                </ul>
+
+                <div class="change-category">后台界面优化</div>
+                <ul class="change-list">
+                    <li>用户列表从单行排列改为卡片式布局</li>
+                    <li>每张卡片显示：头像、用户名、角色标签、活跃状态</li>
+                    <li>角色标签三色区分：超级管理员（橙）、管理员（蓝）、普通用户（灰）</li>
+                    <li>操作按钮分行排列：批准重置 + 设为/取消管理员</li>
+                </ul>
+
+                <div class="change-category">后端改进</div>
+                <ul class="change-list">
+                    <li>auth 中间件改为每次请求实时查数据库获取最新权限</li>
+                    <li>权限变更后即时生效，不依赖 JWT token 里的旧值</li>
+                    <li>服务器启动时自动迁移：第一个用户升级为超级管理员</li>
+                    <li>新增 POST /api/admin/set-admin 接口（仅超级管理员可调用）</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- v2.6 -->
+        <div class="version-block">
+            <div class="version-dot"></div>
+            <div class="version-header">
+                <span class="version-tag">v2.6</span>
+                <span class="version-title">性能优化 · 移除主题切换</span>
+                <span class="version-date">性能修复</span>
+            </div>
+            <div class="version-card">
+                <p class="version-desc">登录页面严重卡顿，经排查是主题切换功能导致。移除多主题切换及相关 CSS/JS，恢复单一靛蓝主题，保留管理员权限功能。</p>
+
+                <div class="change-category">移除内容</div>
+                <ul class="change-list">
+                    <li>移除 6 套多主题 CSS 变量定义（莫兰迪/海洋/日落/森林/玫瑰）</li>
+                    <li>移除登录页主题预览圆点选择器</li>
+                    <li>移除顶栏主题切换按钮和主题面板</li>
+                    <li>移除 app.js 中主题状态、applyTheme 函数及相关事件监听</li>
+                    <li>移除 server.js 中主题数据存储字段和 POST /api/theme 接口</li>
+                </ul>
+
+                <div class="change-category">保留内容</div>
+                <ul class="change-list">
+                    <li>单一靛蓝主题（#6366f1）保持统一视觉风格</li>
+                    <li>管理员权限分级功能完整保留</li>
+                    <li>所有其他功能不受影响</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- v2.7 -->
+        <div class="version-block major">
+            <div class="version-dot"></div>
+            <div class="version-header">
+                <span class="version-tag">v2.7</span>
+                <span class="version-title">界面精简 · 底部导航 8→5 + 图标子导航</span>
+                <span class="version-date">交互重构</span>
+            </div>
+            <div class="version-card">
+                <p class="version-desc">底部导航栏从 8 个缩减到 5 个，合并同类功能。目标与倒数日、日记与保密柜通过页面内图标按钮切换。管理后台入口从底部移到顶栏齿轮图标。</p>
+
+                <div class="change-category">底部导航精简</div>
+                <ul class="change-list">
+                    <li>从 8 个标签精简为 5 个：待办 / 计时 / 目标 / 日记 / 统计</li>
+                    <li>管理后台从底部导航移至顶栏右上角齿轮图标</li>
+                    <li>普通用户底部固定 5 个，界面更清爽</li>
+                    <li>管理员点齿轮图标进入管理后台</li>
+                </ul>
+
+                <div class="change-category">页面内图标子导航</div>
+                <ul class="change-list">
+                    <li>目标页：顶部两个大图标按钮 → 🎯目标 / 📅倒数日</li>
+                    <li>日记页：顶部两个大图标按钮 → 📖日记 / 🔒保密柜</li>
+                    <li>点击图标即时切换内容区域，保留各自功能</li>
+                    <li>子导航按钮选中时高亮，清晰指示当前位置</li>
+                </ul>
+
+                <div class="change-category">顶栏改造</div>
+                <ul class="change-list">
+                    <li>顶栏右侧新增齿轮图标按钮（仅管理员可见）</li>
+                    <li>齿轮按钮与退出按钮并排排列</li>
+                    <li>非管理员看不到齿轮，界面更干净</li>
+                    <li>点击齿轮直接跳转管理后台页面</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- v2.8 -->
+        <div class="version-block major">
+            <div class="version-dot"></div>
+            <div class="version-header">
+                <span class="version-tag">v2.8</span>
+                <span class="version-title">可展开统计 · 时间分组详情</span>
+                <span class="version-date">交互升级</span>
+            </div>
+            <div class="version-card">
+                <p class="version-desc">统计页面从单调的数字升级为可交互的详情面板。点击数字卡片展开查看每条记录的内容和时间，按时间范围自动分组：周内按日、月内按周、年内按月，层次清晰一目了然。</p>
+
+                <div class="change-category">可展开统计卡片</div>
+                <ul class="change-list">
+                    <li>"待办总数""已完成""待完成"三个卡片可点击展开详情</li>
+                    <li>日记统计行也可点击展开查看日记列表</li>
+                    <li>展开后显示每条记录的内容和具体时间</li>
+                    <li>待办记录带状态标记：✓ 已完成 / ○ 待完成</li>
+                    <li>日记记录显示标题 + 内容摘要 + 心情 emoji</li>
+                    <li>再次点击同一卡片可收起详情</li>
+                </ul>
+
+                <div class="change-category">时间分组逻辑</div>
+                <ul class="change-list">
+                    <li>日视图：直接列出所有记录，按时间倒序</li>
+                    <li>周视图：按天分组（周一 9/1、周二 9/2...），每组可折叠</li>
+                    <li>月视图：按周分组（第1周、第2周...），每组可折叠</li>
+                    <li>年视图：按月分组（1月、2月...），每组可折叠</li>
+                    <li>分组标题显示记录条数，折叠/展开箭头指示状态</li>
+                </ul>
+
+                <div class="change-category">时间格式化</div>
+                <ul class="change-list">
+                    <li>日视图显示时:分（14:30）</li>
+                    <li>周视图显示星期 + 时:分（周一 14:30）</li>
+                    <li>月视图显示月/日 + 时:分（9/15 14:30）</li>
+                    <li>年视图显示月日（9月15日）</li>
+                </ul>
+
+                <div class="change-category">样式</div>
+                <ul class="change-list">
+                    <li>统计页头部新增"点击数字卡片可展开查看详细记录"提示</li>
+                    <li>可点击卡片右上角显示 ▸ 箭头标识</li>
+                    <li>分组卡片带边框和深色标题栏，折叠区域平滑过渡</li>
+                    <li>记录条目左对齐内容 + 右对齐时间，整洁易读</li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- 版本对比总表 -->
+<section>
+    <h2>版本对比总表</h2>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>版本</th>
+                    <th>核心主题</th>
+                    <th>类型</th>
+                    <th>关键改动数</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="ver-cell major">v1.0</td>
+                    <td>初始版本 · 单用户本地版</td>
+                    <td>🆕 重大版本</td>
+                    <td>4 大功能模块</td>
+                </tr>
+                <tr>
+                    <td class="ver-cell">v1.1</td>
+                    <td>功能扩展 · 统计与日记</td>
+                    <td>✨ 功能升级</td>
+                    <td>7 项新增 + 3 项优化</td>
+                </tr>
+                <tr>
+                    <td class="ver-cell major">v2.0</td>
+                    <td>多用户系统 · 保密柜</td>
+                    <td>🚀 重大升级</td>
+                    <td>4 大模块全面升级</td>
+                </tr>
+                <tr>
+                    <td class="ver-cell">v2.1</td>
+                    <td>密码找回 · 密保问题</td>
+                    <td>🔐 安全增强</td>
+                    <td>3 项功能 + 后端支持</td>
+                </tr>
+                <tr>
+                    <td class="ver-cell">v2.2</td>
+                    <td>密码确认 · 防止手误</td>
+                    <td>💡 体验优化</td>
+                    <td>全场景密码二次确认</td>
+                </tr>
+                <tr>
+                    <td class="ver-cell">v2.3</td>
+                    <td>管理员批准重置</td>
+                    <td>🔄 流程完善</td>
+                    <td>用户侧 + 管理侧双向优化</td>
+                </tr>
+                <tr>
+                    <td class="ver-cell major">v2.4</td>
+                    <td>待办归档 · 统计分离</td>
+                    <td>⭐ 体验升级</td>
+                    <td>归档机制 + 统计优化 + 管理优化</td>
+                </tr>
+                <tr>
+                    <td class="ver-cell major">v2.5</td>
+                    <td>管理员权限分级</td>
+                    <td>🔐 权限升级</td>
+                    <td>超级/普通管理员 + 卡片式后台</td>
+                </tr>
+                <tr>
+                    <td class="ver-cell">v2.6</td>
+                    <td>性能优化 · 移除主题切换</td>
+                    <td>⚡ 性能修复</td>
+                    <td>移除 6 套主题 + 恢复单一靛蓝</td>
+                </tr>
+                <tr>
+                    <td class="ver-cell major">v2.7</td>
+                    <td>界面精简 · 导航重构</td>
+                    <td>🎨 交互重构</td>
+                    <td>底部 8→5 + 图标子导航 + 齿轮入口</td>
+                </tr>
+                <tr>
+                    <td class="ver-cell major">v2.8</td>
+                    <td>可展开统计 · 时间分组详情</td>
+                    <td>📊 交互升级</td>
+                    <td>点击展开记录 + 周/月/年分组折叠</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- 功能模块全景 -->
+<section>
+    <h2>功能模块全景</h2>
+    <p style="color:var(--muted);margin-bottom:20px;">经过 11 次迭代，底部导航精简为 5 个图标，页面内通过图标按钮切换子功能。管理后台移至顶栏齿轮图标，统计页面支持点击展开查看详细记录。</p>
+
+    <div class="stats-row" style="grid-template-columns: repeat(5, 1fr);">
+        <div class="stat-box"><div class="num">✓</div><div class="label">待办清单</div></div>
+        <div class="stat-box"><div class="num">⏱</div><div class="label">计时器</div></div>
+        <div class="stat-box"><div class="num">🎯</div><div class="label">目标+倒数日</div></div>
+        <div class="stat-box"><div class="num">📖</div><div class="label">日记+保密柜</div></div>
+        <div class="stat-box"><div class="num">📊</div><div class="label">统计</div></div>
+    </div>
+    <div class="stats-row" style="grid-template-columns: repeat(3, 1fr);margin-top:12px;">
+        <div class="stat-box"><div class="num">⚙️</div><div class="label">管理后台（顶栏齿轮）</div></div>
+        <div class="stat-box"><div class="num">🔐</div><div class="label">权限分级</div></div>
+        <div class="stat-box"><div class="num">🔒</div><div class="label">端到端加密</div></div>
+    </div>
+</section>
+
+<footer>
+    <p>生活管理面板 · 版本迭代记录</p>
+    <p style="margin-top:8px;">从一个简单的想法，到功能完善的多用户应用</p>
+    <p style="margin-top:16px;font-size:12px;color:var(--muted);">持续迭代，越用越好</p>
+</footer>
+
+</div>
+
+
+<div data-trae-edit-ui="true" class="trae-image-download-btn" title="Download image" style="position: fixed; display: none; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; background: var(--trae-bg-menu, #222427); border: 1px solid var(--trae-border-l2, rgba(255,255,255,0.12)); box-shadow: var(--trae-floating-shadow, 0px 2px 8px 0px rgba(0,0,0,0.2)); color: var(--trae-icon-default, #f5f9fe); cursor: pointer; z-index: 89990; transition: background 0.15s; pointer-events: auto;"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M8 2v8m0 0L5 7m3 3l3-3M3 12h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+    </svg></div></body></html>
