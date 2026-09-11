@@ -40,7 +40,7 @@ async function checkAuth() {
     if (!token) { showAuth(); return; }
     try {
         const me = await api('/api/me');
-        document.getElementById('current-user').textContent = '👤 ' + me.username;
+        document.getElementById('current-user').textContent = '🐼 ' + me.username;
         isAdmin = me.isAdmin;
         isSuperAdmin = me.isSuperAdmin;
         if (isAdmin) document.getElementById('admin-btn').classList.remove('hidden');
@@ -548,11 +548,34 @@ function renderDiaries() {
     const list = document.getElementById('diary-list');
     if (data.diaries.length === 0) { list.innerHTML = '<div class="empty-tip">暂无日记</div>'; return; }
     const sorted = [...data.diaries].sort((a,b) => new Date(b.date) - new Date(a.date));
-    list.innerHTML = sorted.map(d => `
+    
+    // 按月分组
+    const groups = {};
+    sorted.forEach(d => {
+        const dt = new Date(d.date);
+        const key = dt.getFullYear() + '年' + (dt.getMonth()+1) + '月';
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(d);
+    });
+    
+    const monthKeys = Object.keys(groups).sort((a,b) => {
+        const ya = parseInt(a), yb = parseInt(b);
+        const ma = parseInt(a.match(/年(\d+)月/)?.[1]||0);
+        const mb = parseInt(b.match(/年(\d+)月/)?.[1]||0);
+        return (yb*12+mb) - (ya*12+ma);
+    });
+    
+    list.innerHTML = monthKeys.map(key =>
+        '<div class="diary-month-group">' +
+        '<div class="diary-month-header"><span>' + key + '</span><span class="diary-month-count">' + groups[key].length + ' 篇</span></div>' +
+        '<div class="diary-month-list">' +
+        groups[key].map(d => `
         <div class="diary-item" onclick="editDiary('${d.id}')">
             <h3>${d.emoji||''} ${d.title}</h3>
             <div class="diary-meta"><span>${relTime(d.date)}</span></div>
-            <div class="diary-preview">${(d.content||'').slice(0,80)}</div></div>`).join('');
+            <div class="diary-preview">${(d.content||'').slice(0,80)}</div></div>`).join('') +
+        '</div></div>'
+    ).join('');
 }
 function addDiary() {
     const title = document.getElementById('diary-title').value.trim();
@@ -730,7 +753,7 @@ async function renderAdmin() {
                 : `<button class="admin-action-btn add" onclick="setAdmin('${u.username}', true)">设为管理员</button>`);
             return `<div class="admin-user-card">
                 <div class="admin-user-top">
-                    <span class="admin-user-avatar">👤</span>
+                    <span class="admin-user-avatar">🐼</span>
                     <span class="admin-username">${u.username}</span>
                     ${roleBadge}
                     <span class="admin-status ${active?'active':'inactive'}">${active?'活跃':'不活跃'}</span>
