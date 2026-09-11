@@ -4,15 +4,30 @@ const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/life-dashboard';
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
 
-app.use(express.json());
+// Cloudinary 配置
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME || '',
+    api_key: process.env.CLOUDINARY_API_KEY || '',
+    api_secret: process.env.CLOUDINARY_API_SECRET || ''
+});
+
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB 限制原图大小
+});
+
+app.use(express.json({ limit: '15mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ====== Models ======
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
@@ -47,16 +62,20 @@ const User = mongoose.model('User', userSchema);
 const Data = mongoose.model('Data', dataSchema);
 const ResetRequest = mongoose.model('ResetRequest', resetRequestSchema);
 
+// ====== MongoDB Connection (with auto-reconnect) ======
 let dbConnected = false;
 mongoose.connect(MONGO_URL, {
     serverSelectionTimeoutMS: 5000,
     connectTimeoutMS: 10000,
     socketTimeoutMS: 45000,
     maxPoolSize: 10,
-    minPoolSize: 2
+    minPoolSize: 2,
+    retryWrites: true,
+    w: 'majority'
 }).then(async () => {
     dbConnected = true;
     console.log('MongoDB connected');
+    // 一次性迁移：确保第一个注册的用户是超级管理员
     try {
         const firstUser = await User.findOne().sort({ createdAt: 1 });
         if (firstUser && firstUser.isAdmin && !firstUser.isSuperAdmin) {
@@ -66,13 +85,15 @@ mongoose.connect(MONGO_URL, {
     } catch(e) { console.error('Migration error:', e.message); }
 }).catch(e => {
     console.error('MongoDB error:', e.message);
-    console.error('Server will start anyway');
+    console.error('Server will start anyway - DB operations will retry automatically');
 });
 
-mongoose.connection.on('connected', () => { dbConnected = true; console.log('MongoDB connected'); });
+// 监听连接状态变化
+mongoose.connection.on('connected', () => { dbConnected = true; console.log('MongoDB reconnected'); });
 mongoose.connection.on('disconnected', () => { dbConnected = false; console.warn('MongoDB disconnected'); });
 mongoose.connection.on('reconnected', () => { dbConnected = true; console.log('MongoDB reconnected'); });
 
+// ====== Auth Middleware ======
 async function auth(req, res, next) {
     try {
         const token = req.headers.authorization?.replace('Bearer ', '');
@@ -92,6 +113,7 @@ async function auth(req, res, next) {
     }
 }
 
+// ====== Auth Routes ======
 app.post('/api/register', async (req, res) => {
     try {
         const { username, password, securityQuestion, securityAnswer } = req.body;
@@ -102,8 +124,10 @@ app.post('/api/register', async (req, res) => {
             return res.status(400).json({ error: 'Password must contain letters and numbers' });
         if (!securityQuestion || !securityAnswer || securityAnswer.trim().length < 1)
             return res.status(400).json({ error: 'Need security Q&A' });
+        
         const existing = await User.findOne({ username });
         if (existing) return res.status(400).json({ error: 'Username exists' });
+        
         const userCount = await User.countDocuments();
         const hash = await bcrypt.hash(password, 10);
         const answerHash = await bcrypt.hash(securityAnswer.trim().toLowerCase(), 10);
@@ -111,6 +135,7 @@ app.post('/api/register', async (req, res) => {
             username, password: hash, isAdmin: userCount === 0, isSuperAdmin: userCount === 0,
             securityQuestion, securityAnswer: answerHash
         });
+        
         const token = jwt.sign({ userId: user._id, username, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin }, JWT_SECRET);
         await Data.create({ userId: user._id });
         res.json({ token, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin });
@@ -126,8 +151,10 @@ app.post('/api/login', async (req, res) => {
         if (!username || !password) return res.status(400).json({ error: 'Missing fields' });
         const user = await User.findOne({ username });
         if (!user) return res.status(400).json({ error: 'User not found' });
+        
         const match = await bcrypt.compare(password, user.password);
         if (!match) return res.status(400).json({ error: 'Wrong password' });
+        
         const token = jwt.sign({ userId: user._id, username, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin }, JWT_SECRET);
         res.json({ token, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin, hasVault: !!user.vaultPassword });
     } catch(e) {
@@ -145,6 +172,7 @@ app.get('/api/me', auth, async (req, res) => {
     }
 });
 
+// ====== Forgot Password (Self-service) ======
 app.post('/api/forgot-password/question', async (req, res) => {
     try {
         const { username } = req.body;
@@ -164,18 +192,23 @@ app.post('/api/forgot-password/reset', async (req, res) => {
         const { username, securityAnswer, newPassword } = req.body;
         if (!username || !newPassword) return res.status(400).json({ error: 'Missing fields' });
         if (newPassword.length < 4) return res.status(400).json({ error: 'Password too short' });
+        
         const user = await User.findOne({ username });
         if (!user) return res.status(400).json({ error: 'User not found' });
+        
         if (user.resetApproved) {
             const hash = await bcrypt.hash(newPassword, 10);
             await User.findByIdAndUpdate(user._id, { password: hash, resetApproved: false });
             await ResetRequest.updateMany({ username, status: 'pending' }, { status: 'resolved', resolvedAt: new Date() });
             return res.json({ ok: true });
         }
+        
         if (!securityAnswer) return res.status(400).json({ error: 'Missing answer' });
         if (!user.securityAnswer) return res.status(400).json({ error: 'No security question set' });
+        
         const match = await bcrypt.compare(securityAnswer.trim().toLowerCase(), user.securityAnswer);
         if (!match) return res.status(400).json({ error: 'Wrong answer' });
+        
         const hash = await bcrypt.hash(newPassword, 10);
         await User.findByIdAndUpdate(user._id, { password: hash });
         res.json({ ok: true });
@@ -185,14 +218,18 @@ app.post('/api/forgot-password/reset', async (req, res) => {
     }
 });
 
+// ====== Forgot Password - Request Admin Reset ======
 app.post('/api/forgot-password/request-admin', async (req, res) => {
     try {
         const { username } = req.body;
         if (!username) return res.status(400).json({ error: 'Need username' });
+        
         const user = await User.findOne({ username });
         if (!user) return res.status(400).json({ error: 'User not found' });
+        
         const existing = await ResetRequest.findOne({ username, status: 'pending' });
         if (existing) return res.status(400).json({ error: 'Already requested' });
+        
         await ResetRequest.create({ username, status: 'pending' });
         res.json({ ok: true });
     } catch(e) {
@@ -200,6 +237,7 @@ app.post('/api/forgot-password/request-admin', async (req, res) => {
     }
 });
 
+// ====== Vault Password Routes ======
 app.post('/api/vault/setup', auth, async (req, res) => {
     try {
         const { vaultPassword } = req.body;
@@ -231,6 +269,7 @@ app.post('/api/vault/reset', auth, async (req, res) => {
     } catch(e) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// ====== Data Routes ======
 app.get('/api/data', auth, async (req, res) => {
     try {
         let d = await Data.findOne({ userId: req.userId });
@@ -257,6 +296,7 @@ app.post('/api/data', auth, async (req, res) => {
     }
 });
 
+// ====== Admin Routes ======
 app.post('/api/admin/set-admin', auth, async (req, res) => {
     try {
         if (!req.isSuperAdmin) return res.status(403).json({ error: '超级管理员才能操作' });
@@ -310,22 +350,66 @@ app.get('/api/admin/reset-requests', auth, async (req, res) => {
     } catch(e) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// ====== Image Upload (Cloudinary) ======
+app.post('/api/upload', auth, upload.single('image'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+        const stream = cloudinary.uploader.upload_stream({
+            folder: 'life-dashboard',
+            transformation: [
+                { width: 1280, crop: 'limit' },
+                { quality: 'auto:good' },
+                { fetch_format: 'auto' }
+            ]
+        }, (err, result) => {
+            if (err) {
+                console.error('Cloudinary error:', err.message);
+                return res.status(500).json({ error: 'Upload failed' });
+            }
+            res.json({ url: result.secure_url, publicId: result.public_id });
+        });
+        stream.end(req.file.buffer);
+    } catch(e) {
+        console.error('Upload error:', e.message);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/upload/delete', auth, async (req, res) => {
+    try {
+        const { publicId } = req.body;
+        if (!publicId) return res.status(400).json({ error: 'Missing publicId' });
+        await cloudinary.uploader.destroy(publicId);
+        res.json({ ok: true });
+    } catch(e) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// ====== Health Check ======
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', db: dbConnected ? 'connected' : 'disconnected', uptime: process.uptime() });
 });
 
+// ====== Global Error Handler ======
 app.use((err, req, res, next) => {
     console.error('Unhandled error:', err.message);
     res.status(500).json({ error: 'Server error' });
 });
 
+// ====== Fallback ======
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-process.on('unhandledRejection', (err) => { console.error('Unhandled Rejection:', err.message); });
-process.on('uncaughtException', (err) => { console.error('Uncaught Exception:', err.message); });
+// ====== Graceful Shutdown ======
+process.on('unhandledRejection', (err) => {
+    console.error('Unhandled Rejection:', err.message);
+});
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err.message);
+});
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log('Life Dashboard v2 running at http://localhost:' + PORT);
+    console.log(`Life Dashboard v2 running at http://localhost:${PORT}`);
 });
