@@ -7,7 +7,6 @@
     <meta name="theme-color" content="#6366f1">
     <title>生活管理面板</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
 </head>
 <body>
     <!-- 登录/注册页 -->
@@ -69,6 +68,291 @@
                 <p>密码已重置成功！请用新密码登录。</p>
                 <button id="forgot-done" class="auth-btn">好的</button>
             </div>
+            <div id="forgot-step4" class="hidden">
+                <div class="forgot-success-icon">📨</div>
+                <p>已向管理员发送重置请求</p>
+                <p style="font-size:13px;color:var(--text-dim);margin-top:8px">管理员处理后，你可以用新密码登录。请通过其他方式联系管理员告知你的新密码。</p>
+                <button id="forgot-request-done" class="auth-btn">好的</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主应用 -->
+    <div id="app" class="hidden">
+        <div class="top-bar">
+            <span id="current-user" class="user-badge">🐼 </span>
+            <div class="top-bar-right">
+                <button id="guide-btn" class="top-bar-icon" title="使用指南">❓</button>
+                <button id="admin-btn" class="top-bar-icon hidden">⚙️</button>
+                <button id="logout-btn" class="logout-btn">退出</button>
+            </div>
+        </div>
+
+        <!-- 待办清单 -->
+        <div class="page" id="page-todos">
+            <div class="header">
+                <h1>待办清单</h1>
+                <div class="progress-bar"><div class="progress-fill" id="todo-progress"></div></div>
+                <span class="progress-text" id="todo-progress-text">0 / 0</span>
+            </div>
+            <div class="filter-tabs" id="todo-filters">
+                <button class="filter-tab active" data-filter="all">全部</button>
+                <button class="filter-tab" data-filter="active">待完成</button>
+                <button class="filter-tab" data-filter="done">已完成</button>
+            </div>
+            <div class="list" id="todo-list"></div>
+            <div class="add-bar">
+                <input type="text" id="todo-input" placeholder="添加待办事项..." />
+                <select id="todo-category"><option>工作</option><option>生活</option><option>学习</option><option>其他</option></select>
+                <select id="todo-priority"><option value="low">低</option><option value="mid" selected>中</option><option value="high">高</option></select>
+                <button id="todo-add-btn">+</button>
+            </div>
+        </div>
+
+        <!-- 计时器 -->
+        <div class="page hidden" id="page-timers">
+            <div class="header"><h1>计时器</h1></div>
+            <div class="filter-tabs" id="timer-filters">
+                <button class="filter-tab active" data-filter="all">全部</button>
+                <button class="filter-tab" data-filter="countdown">倒计时</button>
+                <button class="filter-tab" data-filter="countup">正向计时</button>
+            </div>
+            <div class="list" id="timer-list"></div>
+            <div class="add-bar">
+                <input type="text" id="timer-input" placeholder="标题（如：考试）" />
+                <div class="date-input-wrap"><label>时间</label><input type="datetime-local" id="timer-date" /></div>
+                <select id="timer-direction"><option value="countdown">倒计时</option><option value="countup">正向</option></select>
+                <input type="color" id="timer-color" value="#6366f1" />
+                <button id="timer-add-btn">+</button>
+            </div>
+        </div>
+
+        <!-- 目标 + 倒数日 -->
+        <div class="page hidden" id="page-goals">
+            <div class="sub-nav">
+                <button class="sub-nav-btn active" data-sub="goals"><span class="sub-nav-icon">🎯</span><span>目标</span></button>
+                <button class="sub-nav-btn" data-sub="countdowns"><span class="sub-nav-icon">📅</span><span>倒数日</span></button>
+            </div>
+            <div class="sub-content" id="sub-goals">
+                <div class="list" id="goal-list"></div>
+                <div class="add-bar">
+                    <input type="text" id="goal-input" placeholder="目标标题" />
+                    <input type="text" id="goal-desc" placeholder="描述（可选）" />
+                    <div class="date-input-wrap"><label>截止</label><input type="date" id="goal-deadline" /></div>
+                    <button id="goal-add-btn">+</button>
+                </div>
+            </div>
+            <div class="sub-content hidden" id="sub-countdowns">
+                <div class="list" id="countdown-list"></div>
+                <div class="add-bar">
+                    <input type="text" id="cd-input" placeholder="事件名称" />
+                    <div class="date-input-wrap"><label>日期</label><input type="date" id="cd-date" /></div>
+                    <select id="cd-mode"><option value="until">距今还有</option><option value="since">已经过了</option></select>
+                    <input type="text" id="cd-emoji" placeholder="emoji" value="📅" style="width:50px" />
+                    <button id="cd-add-btn">+</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 统计 -->
+        <div class="page hidden" id="page-stats">
+            <div class="header"><h1>统计</h1><p class="stats-hint">点击数字卡片可展开查看详细记录</p></div>
+            <div class="filter-tabs" id="stats-filters">
+                <button class="filter-tab active" data-stats-range="day">日</button>
+                <button class="filter-tab" data-stats-range="week">周</button>
+                <button class="filter-tab" data-stats-range="month">月</button>
+                <button class="filter-tab" data-stats-range="year">年</button>
+            </div>
+            <div class="stats-cards" id="stats-cards"></div>
+            <div class="stats-details hidden" id="stats-details"></div>
+            <div class="stats-section" id="stats-category"></div>
+            <div class="stats-section" id="stats-priority"></div>
+            <div class="stats-section" id="stats-goals"></div>
+            <div class="stats-section" id="stats-diaries"></div>
+        </div>
+
+        <!-- 日记 + 保密柜 -->
+        <div class="page hidden" id="page-diary">
+            <div class="sub-nav">
+                <button class="sub-nav-btn active" data-sub="diary"><span class="sub-nav-icon">📖</span><span>日记</span></button>
+                <button class="sub-nav-btn" data-sub="vault"><span class="sub-nav-icon">🔒</span><span>保密柜</span></button>
+            </div>
+            <div class="sub-content" id="sub-diary">
+                <div class="list" id="diary-list"></div>
+                <div class="add-bar">
+                    <input type="text" id="diary-title" placeholder="标题" />
+                    <div class="date-input-wrap"><label>日期</label><input type="date" id="diary-date" /></div>
+                    <select id="diary-mood">
+                        <option>😊</option><option>😄</option><option>😢</option><option>😡</option>
+                        <option>😨</option><option>😴</option><option>🤔</option><option>😎</option>
+                        <option>🥳</option><option>😭</option><option>🤗</option><option>😐</option>
+                    </select>
+                    <button id="diary-add-btn">+</button>
+                </div>
+            </div>
+            <div class="sub-content hidden" id="sub-vault">
+                <div id="vault-setup" class="vault-section hidden">
+                    <p class="vault-tip">设置一个独立密码,用于加密和保护你的私密内容。内容在浏览器端加密后存储,服务器只能看到密文。</p>
+                    <input type="password" id="vault-setup-password" placeholder="设置保密柜密码" class="auth-input" />
+                    <input type="password" id="vault-setup-confirm" placeholder="确认密码" class="auth-input" />
+                    <button id="vault-setup-btn" class="auth-btn">设置密码</button>
+                    <p id="vault-setup-error" class="auth-error"></p>
+                </div>
+                <div id="vault-locked" class="vault-section hidden">
+                    <div class="vault-lock-icon">🔒</div>
+                    <p>输入保密柜密码以查看加密内容</p>
+                    <input type="password" id="vault-unlock-password" placeholder="保密柜密码" class="auth-input" />
+                    <button id="vault-unlock-btn" class="auth-btn">解锁</button>
+                    <p id="vault-unlock-error" class="auth-error"></p>
+                    <button id="vault-forgot-link" class="forgot-link">忘记保密柜密码？</button>
+                </div>
+                <div id="vault-unlocked" class="vault-section hidden">
+                    <div class="vault-tabs">
+                        <button class="vault-tab active" data-vault-filter="all">全部</button>
+                        <button class="vault-tab" data-vault-filter="diary">日记</button>
+                        <button class="vault-tab" data-vault-filter="todo">待办</button>
+                        <button class="vault-tab" data-vault-filter="note">便签</button>
+                    </div>
+                    <div class="list" id="vault-list"></div>
+                    <div class="add-bar">
+                        <select id="vault-type"><option value="note">便签</option><option value="diary">日记</option><option value="todo">待办</option></select>
+                        <input type="text" id="vault-title" placeholder="标题" />
+                        <button id="vault-add-btn">+ 添加</button>
+                    </div>
+                    <button id="vault-lock-btn" class="vault-lockback-btn">🔒 重新锁定</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 管理后台 -->
+        <div class="page hidden" id="page-admin">
+            <div class="header"><h1>管理后台</h1></div>
+            <div class="stats-cards" id="admin-cards"></div>
+            <div class="stats-section" id="admin-requests-section">
+                <h3>📨 密码重置请求</h3>
+                <div id="admin-requests-list"></div>
+            </div>
+            <div class="stats-section">
+                <h3>用户列表</h3>
+                <div id="admin-user-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 保密柜重置确认弹窗 -->
+    <div class="modal hidden" id="vault-reset-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚠️ 重置保密柜</h2>
+                <button id="vault-reset-close">✕</button>
+            </div>
+            <div class="vault-reset-warning">
+                <p style="font-size:15px;line-height:1.8">
+                    重置保密柜密码将：<br>
+                    1. <span style="color:var(--danger);font-weight:700">永久删除</span>所有已加密的保密柜内容<br>
+                    2. 清除当前保密柜密码<br>
+                    3. 你可以设置新的保密柜密码<br><br>
+                    <span style="color:var(--warning);font-weight:700">此操作不可撤销，旧内容无法恢复！</span>
+                </p>
+            </div>
+            <input type="password" id="vault-reset-confirm-input" placeholder="输入登录密码以确认操作" class="modal-input" />
+            <p id="vault-reset-error" class="auth-error"></p>
+            <div class="modal-actions">
+                <button id="vault-reset-cancel" class="modal-del-btn">取消</button>
+                <button id="vault-reset-confirm-btn" class="modal-save-btn" style="background:var(--danger)">确认重置保密柜</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 管理员批准重置确认弹窗 -->
+    <div class="modal hidden" id="admin-reset-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>批准密码重置</h2>
+                <button id="admin-reset-close">✕</button>
+            </div>
+            <p class="forgot-question-text">确认批准用户 <span id="admin-reset-username" style="font-weight:700;color:var(--primary-light)"></span> 的密码重置请求？</p>
+            <p style="font-size:13px;color:var(--text-dim);margin-bottom:12px">批准后，该用户可以自行设置新密码。</p>
+            <button id="admin-reset-confirm" class="auth-btn">确认批准</button>
+            <p id="admin-reset-error" class="auth-error"></p>
+        </div>
+    </div>
+
+    <!-- 日记编辑弹窗 -->
+    <div class="modal hidden" id="diary-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="diary-modal-title">写日记</h2>
+                <button id="diary-modal-close">✕</button>
+            </div>
+            <input type="text" id="diary-edit-title" placeholder="标题" class="modal-input" />
+            <input type="date" id="diary-edit-date" class="modal-input" />
+            <select id="diary-edit-mood" class="modal-input">
+                <option>😊</option><option>😄</option><option>😢</option><option>😡</option>
+                <option>😨</option><option>😴</option><option>🤔</option><option>😎</option>
+                <option>🥳</option><option>😭</option><option>🤗</option><option>😐</option>
+            </select>
+            <textarea id="diary-edit-content" placeholder="今天发生了什么..." class="modal-textarea"></textarea>
+            <div class="modal-actions">
+                <button id="diary-to-vault" class="modal-vault-btn">🔒 移入保密柜</button>
+                <button id="diary-save-btn" class="modal-save-btn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 保密柜内容编辑弹窗 -->
+    <div class="modal hidden" id="vault-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>编辑保密内容</h2>
+                <button id="vault-modal-close">✕</button>
+            </div>
+            <input type="text" id="vault-edit-title" placeholder="标题" class="modal-input" />
+            <textarea id="vault-edit-content" placeholder="内容..." class="modal-textarea"></textarea>
+            <div class="modal-actions">
+                <button id="vault-delete-btn" class="modal-del-btn">删除</button>
+                <button id="vault-edit-save-btn" class="modal-save-btn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 待办编辑弹窗 -->
+    <div class="modal hidden" id="todo-edit-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>编辑待办</h2>
+                <button id="todo-edit-modal-close">✕</button>
+            </div>
+            <input type="text" id="todo-edit-text" placeholder="待办内容" class="modal-input" />
+            <select id="todo-edit-category" class="modal-input"><option>工作</option><option>生活</option><option>学习</option><option>其他</option></select>
+            <select id="todo-edit-priority" class="modal-input"><option value="low">低</option><option value="mid">中</option><option value="high">高</option></select>
+            <div class="modal-actions">
+                <button id="todo-edit-save-btn" class="modal-save-btn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 使用指南弹窗 -->
+    <div class="guide-modal hidden" id="guide-modal">
+        <div class="guide-modal-header">
+            <h2>📖 使用指南</h2>
+            <button id="guide-modal-close">✕</button>
+        </div>
+        <iframe id="guide-iframe" src="life-dashboard-guide.html" class="guide-iframe"></iframe>
+    </div>
+
+    <!-- 底部导航 -->
+    <nav class="bottom-nav">
+        <button class="nav-btn active" data-page="todos"><span class="nav-icon">✓</span><span>待办</span></button>
+        <button class="nav-btn" data-page="timers"><span class="nav-icon">⏱</span><span>计时</span></button>
+        <button class="nav-btn" data-page="goals"><span class="nav-icon">🎯</span><span>目标</span></button>
+        <button class="nav-btn" data-page="diary"><span class="nav-icon">📖</span><span>日记</span></button>
+        <button class="nav-btn" data-page="stats"><span class="nav-icon">📊</span><span>统计</span></button>
+    </nav>
+
+    <script src="app.js" defer></script>
+</body>
+</html>
             <div id="forgot-step4" class="hidden">
                 <div class="forgot-success-icon">📨</div>
                 <p>已向管理员发送重置请求</p>
