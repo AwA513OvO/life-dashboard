@@ -79,6 +79,7 @@ document.querySelectorAll('.auth-tab').forEach(tab => {
 
 function validatePasswordRules() {
     const pw = document.getElementById('auth-password').value;
+    const rulesEl = document.getElementById('password-rules');
     if (!pw) return false;
     const lengthOk = pw.length >= 4 && pw.length <= 8;
     const hasLetter = /[a-zA-Z]/.test(pw);
@@ -93,7 +94,7 @@ document.getElementById('auth-submit').addEventListener('click', async () => {
     
     let body = { username, password };
     if (authMode === 'register') {
-        if (!validatePasswordRules()) { document.getElementById('auth-error').textContent = '密码需4-8位，包含字母和数字'; return; }
+        if (!validatePasswordRules()) { document.getElementById('auth-error').textContent = '密码格式不符合要求'; return; }
         const pwConfirm = document.getElementById('auth-password-confirm').value;
         if (!pwConfirm) { document.getElementById('auth-error').textContent = '请再次输入密码确认'; return; }
         if (password !== pwConfirm) { document.getElementById('auth-error').textContent = '两次密码不一致，请重新输入'; return; }
@@ -209,7 +210,7 @@ document.getElementById('forgot-done').addEventListener('click', () => {
     document.getElementById('auth-username').focus();
 });
 
-// ====== Request Admin Reset ======
+// ====== Request Admin Reset (when security question also forgotten) ======
 document.getElementById('forgot-request-admin').addEventListener('click', async () => {
     const username = document.getElementById('forgot-username').value.trim();
     if (!username) { document.getElementById('forgot-step1-error').textContent = '请先输入用户名'; return; }
@@ -277,28 +278,102 @@ async function saveData() {
 }
 
 // ====== Todos ======
+function priorityOrder(p) { return p === 'high' ? 0 : p === 'mid' ? 1 : 2; }
+let editingTodoId = null;
+let longPressTimer = null;
+
 function renderTodos() {
     const list = document.getElementById('todo-list');
     let items = data.todos.filter(t => !t.archived);
+    // 按优先级排序（高→中→低），同优先级按手动顺序排
+    items.sort((a, b) => {
+        if (priorityOrder(a.priority) !== priorityOrder(b.priority))
+            return priorityOrder(a.priority) - priorityOrder(b.priority);
+        const ai = a.order ?? 999999;
+        const bi = b.order ?? 999999;
+        return ai - bi;
+    });
     if (currentFilter === 'active') items = items.filter(t => !t.done);
     if (currentFilter === 'done') items = items.filter(t => t.done);
-    list.innerHTML = items.length === 0 ? '<div class="empty-tip">暂无待办事项</div>' : items.map(t => `
-        <div class="todo-item ${t.done?'done':''} ${t.priority}">
-            <div class="todo-check ${t.done?'done':''}" onclick="toggleTodo('${t.id}')">${t.done?'✓':''}</div>
+    list.innerHTML = items.length === 0 ? '<div class="empty-tip">暂无待办事项</div>' : items.map((t, idx) => `
+        <div class="todo-item ${t.done?'done':''} ${t.priority}" data-id="${t.id}"
+             ontouchstart="startLongPress('${t.id}')" ontouchend="cancelLongPress()" ontouchmove="cancelLongPress()"
+             onmousedown="startLongPress('${t.id}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()">
+            <div class="todo-check ${t.done?'done':''}" onclick="event.stopPropagation(); toggleTodo('${t.id}')">${t.done?'✓':''}</div>
             <div style="flex:1"><div class="todo-text ${t.done?'done':''}">${t.text}</div>
             <div class="todo-meta"><span>${t.category}</span><span>${t.priority==='high'?'高':t.priority==='mid'?'中':'低'}</span></div></div>
-            <span class="todo-del" onclick="delTodo('${t.id}')">✕</span>
+            <div class="todo-reorder">
+                <button class="todo-reorder-btn" onclick="event.stopPropagation(); moveTodoUp('${t.id}')" ${idx===0?'disabled':''}>↑</button>
+                <button class="todo-reorder-btn" onclick="event.stopPropagation(); moveTodoDown('${t.id}')" ${idx===items.length-1?'disabled':''}>↓</button>
+            </div>
+            <span class="todo-del" onclick="event.stopPropagation(); delTodo('${t.id}')">✕</span>
         </div>`).join('');
     const total = items.length, done = items.filter(t => t.done).length;
     document.getElementById('todo-progress').style.width = total ? (done/total*100)+'%' : '0%';
     document.getElementById('todo-progress-text').textContent = `${done} / ${total}`;
 }
+
+function startLongPress(id) {
+    cancelLongPress();
+    longPressTimer = setTimeout(() => { editTodo(id); }, 600);
+}
+function cancelLongPress() { if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; } }
+
+function editTodo(id) {
+    const t = data.todos.find(x => x.id === id); if (!t) return;
+    editingTodoId = id;
+    document.getElementById('todo-edit-text').value = t.text;
+    document.getElementById('todo-edit-category').value = t.category;
+    document.getElementById('todo-edit-priority').value = t.priority;
+    document.getElementById('todo-edit-modal').classList.remove('hidden');
+}
+function saveTodoEdit() {
+    const t = data.todos.find(x => x.id === editingTodoId); if (!t) return;
+    const newText = document.getElementById('todo-edit-text').value.trim();
+    if (!newText) return;
+    t.text = newText;
+    t.category = document.getElementById('todo-edit-category').value;
+    t.priority = document.getElementById('todo-edit-priority').value;
+    saveData(); renderTodos();
+    document.getElementById('todo-edit-modal').classList.add('hidden');
+}
 function addTodo() {
     const text = document.getElementById('todo-input').value.trim();
     if (!text) return;
-    data.todos.push({ id: uid(), text, done: false, category: document.getElementById('todo-category').value, priority: document.getElementById('todo-priority').value, createdAt: new Date().toISOString() });
+    const maxOrder = data.todos.reduce((mx, t) => Math.max(mx, t.order ?? 0), 0);
+    data.todos.push({ id: uid(), text, done: false, category: document.getElementById('todo-category').value, priority: document.getElementById('todo-priority').value, createdAt: new Date().toISOString(), order: maxOrder + 1 });
     document.getElementById('todo-input').value = '';
     saveData(); renderTodos();
+}
+function moveTodoUp(id) {
+    const items = data.todos.filter(t => !t.archived);
+    items.sort((a, b) => {
+        if (priorityOrder(a.priority) !== priorityOrder(b.priority))
+            return priorityOrder(a.priority) - priorityOrder(b.priority);
+        return (a.order ?? 999999) - (b.order ?? 999999);
+    });
+    const idx = items.findIndex(t => t.id === id);
+    if (idx > 0) {
+        const tmp = items[idx].order;
+        items[idx].order = items[idx-1].order;
+        items[idx-1].order = tmp;
+        saveData(); renderTodos();
+    }
+}
+function moveTodoDown(id) {
+    const items = data.todos.filter(t => !t.archived);
+    items.sort((a, b) => {
+        if (priorityOrder(a.priority) !== priorityOrder(b.priority))
+            return priorityOrder(a.priority) - priorityOrder(b.priority);
+        return (a.order ?? 999999) - (b.order ?? 999999);
+    });
+    const idx = items.findIndex(t => t.id === id);
+    if (idx >= 0 && idx < items.length - 1) {
+        const tmp = items[idx].order;
+        items[idx].order = items[idx+1].order;
+        items[idx+1].order = tmp;
+        saveData(); renderTodos();
+    }
 }
 function toggleTodo(id) { const t = data.todos.find(t => t.id === id); if (t) { t.done = !t.done; t.completedAt = t.done ? new Date().toISOString() : null; saveData(); renderTodos(); } }
 function delTodo(id) {
@@ -575,6 +650,7 @@ function renderDiaries() {
     if (data.diaries.length === 0) { list.innerHTML = '<div class="empty-tip">暂无日记</div>'; return; }
     const sorted = [...data.diaries].sort((a,b) => new Date(b.date) - new Date(a.date));
     
+    // 按月分组
     const groups = {};
     sorted.forEach(d => {
         const dt = new Date(d.date);
@@ -816,6 +892,7 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
     });
 });
 
+// ====== Sub Navigation (icon-based switching within combined pages) ======
 document.querySelectorAll('.sub-nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const page = btn.closest('.page');
@@ -848,6 +925,8 @@ document.querySelectorAll('.vault-tab').forEach(tab => {
 // ====== Event Bindings ======
 document.getElementById('todo-add-btn').addEventListener('click', addTodo);
 document.getElementById('todo-input').addEventListener('keypress', e => { if (e.key === 'Enter') addTodo(); });
+document.getElementById('todo-edit-modal-close').addEventListener('click', () => document.getElementById('todo-edit-modal').classList.add('hidden'));
+document.getElementById('todo-edit-save-btn').addEventListener('click', saveTodoEdit);
 document.getElementById('timer-add-btn').addEventListener('click', addTimer);
 document.getElementById('goal-add-btn').addEventListener('click', addGoal);
 document.getElementById('cd-add-btn').addEventListener('click', addCountdown);
