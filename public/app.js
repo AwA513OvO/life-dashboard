@@ -944,4 +944,3 @@ document.getElementById('vault-delete-btn').addEventListener('click', () => { da
 // ====== Init ======
 checkAuth();
 setInterval(() => { renderTimers(); }, 1000);
-setInterval(() => { if (token) { loadData().then(renderAll); } }, 10000);
