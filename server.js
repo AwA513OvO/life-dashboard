@@ -375,6 +375,27 @@ app.post('/api/upload', auth, upload.single('image'), async (req, res) => {
     }
 });
 
+app.post('/api/upload/audio', auth, upload.single('audio'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ error: 'No audio uploaded' });
+        if (req.file.size > 2 * 1024 * 1024) return res.status(400).json({ error: 'Audio exceeds 2MB limit' });
+        const stream = cloudinary.uploader.upload_stream({
+            folder: 'life-dashboard/audio',
+            resource_type: 'auto'
+        }, (err, result) => {
+            if (err) {
+                console.error('Cloudinary audio error:', err.message);
+                return res.status(500).json({ error: 'Upload failed' });
+            }
+            res.json({ url: result.secure_url, publicId: result.public_id });
+        });
+        stream.end(req.file.buffer);
+    } catch(e) {
+        console.error('Audio upload error:', e.message);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 app.post('/api/upload/delete', auth, async (req, res) => {
     try {
         const { publicId } = req.body;
