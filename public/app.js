@@ -756,6 +756,61 @@ function removeDiaryImage() {
     preview.classList.add('hidden');
 }
 
+// ====== Move Diary to Vault ======
+async function moveDiaryToVault() {
+    const d = data.diaries.find(x => x.id === editingDiaryId);
+    if (!d) return;
+
+    try {
+        const me = await api('/api/me');
+        if (!me.hasVault) {
+            alert('你还没有设置保密柜密码，请先到「保密柜」页面设置密码后再使用此功能。');
+            return;
+        }
+    } catch(e) {
+        alert('无法检查保密柜状态，请稍后重试');
+        return;
+    }
+
+    if (!vaultUnlocked || !vaultKey) {
+        alert('请先到「保密柜」页面解锁保密柜，再回来使用此功能。');
+        return;
+    }
+
+    if (!confirm('确认将这篇日记移入保密柜？\n移入后，这篇日记会从普通日记列表中消失，只有解锁保密柜才能查看。')) return;
+
+    try {
+        const encTitle = CryptoJS.AES.encrypt(d.title || '无标题', vaultKey).toString();
+        const encContent = CryptoJS.AES.encrypt(d.content || '', vaultKey).toString();
+
+        const vaultItem = {
+            id: uid(),
+            type: 'diary',
+            title: encTitle,
+            content: encContent,
+            image: d.image || '',
+            imagePublicId: d.imagePublicId || '',
+            audio: d.audio || '',
+            audioPublicId: d.audioPublicId || '',
+            createdAt: new Date().toISOString()
+        };
+
+        if (!data.vault) data.vault = [];
+        data.vault.push(vaultItem);
+        data.diaries = data.diaries.filter(x => x.id !== editingDiaryId);
+
+        await saveData();
+
+        document.getElementById('diary-modal').classList.add('hidden');
+        renderDiaries();
+        renderVaultList();
+        alert('已成功移入保密柜！');
+    } catch(e) {
+        console.error('Move to vault error:', e);
+        alert('移入保密柜失败，请稍后重试');
+    }
+}
+
 document.getElementById('diary-image-btn').addEventListener('click', () => {
     document.getElementById('diary-image-input').click();
 });
@@ -1114,6 +1169,7 @@ document.getElementById('cd-add-btn').addEventListener('click', addCountdown);
 document.getElementById('diary-add-btn').addEventListener('click', addDiary);
 document.getElementById('diary-modal-close').addEventListener('click', () => document.getElementById('diary-modal').classList.add('hidden'));
 document.getElementById('diary-save-btn').addEventListener('click', saveDiary);
+document.getElementById('diary-to-vault').addEventListener('click', moveDiaryToVault);
 document.getElementById('vault-setup-btn').addEventListener('click', setupVault);
 document.getElementById('vault-unlock-btn').addEventListener('click', unlockVault);
 document.getElementById('vault-lock-btn').addEventListener('click', lockVault);
