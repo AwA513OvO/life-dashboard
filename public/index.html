@@ -295,15 +295,24 @@
             </select>
             <textarea id="diary-edit-content" placeholder="今天发生了什么..." class="modal-textarea"></textarea>
             <div class="diary-image-section">
-                <div id="diary-image-preview" class="diary-image-preview hidden"></div>
-                <input type="file" id="diary-image-input" accept="image/*" class="hidden" />
-                <button type="button" id="diary-image-btn" class="diary-image-btn">📷 添加图片</button>
-                <span id="diary-image-status" class="diary-image-status"></span>
-            </div>
-            <div class="modal-actions">
-                <button id="diary-to-vault" class="modal-vault-btn">🔒 移入保密柜</button>
-                <button id="diary-save-btn" class="modal-save-btn">保存</button>
-            </div>
+    <div id="diary-image-preview" class="diary-image-preview hidden"></div>
+    <input type="file" id="diary-image-input" accept="image/*" class="hidden" />
+    <button type="button" id="diary-image-btn" class="diary-image-btn">📷 添加图片</button>
+    <span id="diary-image-status" class="diary-image-status"></span>
+</div>
+<!-- ↓↓↓ 新加的音频录制区域 ↓↓↓ -->
+<div class="diary-audio-section" style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
+    <div style="display:flex;align-items:center;gap:10px;">
+        <button type="button" id="diary-audio-btn" class="diary-image-btn">🎤 录音</button>
+        <span id="diary-audio-status" class="diary-image-status" style="font-size:13px;color:var(--text-dim);"></span>
+    </div>
+    <div id="diary-audio-preview" class="hidden"></div>
+</div>
+<!-- ↑↑↑ 新加的音频录制区域 ↑↑↑ -->
+<div class="modal-actions">
+    <button id="diary-to-vault" class="modal-vault-btn">🔒 移入保密柜</button>
+    <button id="diary-save-btn" class="modal-save-btn">保存</button>
+</div>
         </div>
     </div>
 
