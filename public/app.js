@@ -9,6 +9,12 @@ let currentVaultFilter = 'all';
 let editingDiaryId = null;
 let editingDiaryImage = '';
 let editingDiaryImagePublicId = '';
+let editingDiaryAudio = '';
+let editingDiaryAudioPublicId = '';
+let mediaRecorder = null;
+let audioChunks = [];
+let recordingTimer = null;
+let recordingSeconds = 0;
 let editingVaultId = null;
 let vaultUnlocked = false;
 let vaultKey = '';
@@ -551,13 +557,16 @@ function renderStatsDetail(type) {
     let records = [];
 
     if (type === 'all' || type === 'done' || type === 'pending') {
-        let todos = data.todos.filter(t => {
-            const created = new Date(t.createdAt) >= startMs;
-            const completed = t.done && t.completedAt && new Date(t.completedAt) >= startMs;
-            return created || completed;
-        });
-        if (type === 'done') todos = todos.filter(t => t.done);
-        if (type === 'pending') todos = todos.filter(t => !t.done);
+        let todos;
+        if (type === 'pending') {
+            todos = data.todos.filter(t => !t.archived && !t.done);
+        } else if (type === 'done') {
+            todos = data.todos.filter(t => t.done && t.completedAt && new Date(t.completedAt) >= startMs);
+        } else {
+            const done = data.todos.filter(t => t.done && t.completedAt && new Date(t.completedAt) >= startMs);
+            const pending = data.todos.filter(t => !t.archived && !t.done);
+            todos = done.concat(pending);
+        }
         records = todos.map(t => ({
             content: t.text,
             time: t.done && t.completedAt ? t.completedAt : t.createdAt,
@@ -608,30 +617,25 @@ function renderStats() {
 
     const start = getStatsRangeStart(currentStatsRange); const startMs = start.getTime();
     const completedInRange = data.todos.filter(t => t.done && t.completedAt && new Date(t.completedAt) >= startMs);
-    const createdInRange = data.todos.filter(t => !t.archived && new Date(t.createdAt) >= startMs);
-    const totalInRange = data.todos.filter(t => {
-        const created = new Date(t.createdAt) >= startMs;
-        const completed = t.done && t.completedAt && new Date(t.completedAt) >= startMs;
-        return created || completed;
-    });
-    const doneInRange = completedInRange;
+    const pendingTodos = data.todos.filter(t => !t.archived && !t.done);
+    const totalTodos = completedInRange.concat(pendingTodos);
     const diariesInRange = data.diaries.filter(d => new Date(d.date) >= startMs);
     const goalsDone = data.goals.filter(g => g.progress >= 100).length;
-    const completionRate = totalInRange.length ? Math.round(doneInRange.length / totalInRange.length * 100) + '%' : '0%';
+    const completionRate = totalTodos.length ? Math.round(completedInRange.length / totalTodos.length * 100) + '%' : '0%';
     document.getElementById('stats-cards').innerHTML = `
-        <div class="stat-card clickable" onclick="renderStatsDetail('all')"><div class="num">${totalInRange.length}</div><div class="label">待办总数</div></div>
-        <div class="stat-card success clickable" onclick="renderStatsDetail('done')"><div class="num">${doneInRange.length}</div><div class="label">已完成</div></div>
-        <div class="stat-card warning clickable" onclick="renderStatsDetail('pending')"><div class="num">${Math.max(0, totalInRange.length - doneInRange.length)}</div><div class="label">待完成</div></div>
+        <div class="stat-card clickable" onclick="renderStatsDetail('all')"><div class="num">${totalTodos.length}</div><div class="label">待办总数</div></div>
+        <div class="stat-card success clickable" onclick="renderStatsDetail('done')"><div class="num">${completedInRange.length}</div><div class="label">已完成</div></div>
+        <div class="stat-card warning clickable" onclick="renderStatsDetail('pending')"><div class="num">${pendingTodos.length}</div><div class="label">待完成</div></div>
         <div class="stat-card"><div class="num">${completionRate}</div><div class="label">完成率</div></div>`;
-    const cats = {}; totalInRange.forEach(t => cats[t.category]=(cats[t.category]||0)+1);
+    const cats = {}; totalTodos.forEach(t => cats[t.category]=(cats[t.category]||0)+1);
     const catColors = {'工作':'#6366f1','生活':'#22c55e','学习':'#f59e0b','其他':'#888'};
     document.getElementById('stats-category').innerHTML = '<h3>分类统计</h3>' + (Object.keys(cats).length ? Object.entries(cats).map(([name,count]) =>
         `<div class="stat-row"><span class="name">${name}</span><div class="bar"><div class="bar-fill" style="width:${count/totalInRange.length*100}%;background:${catColors[name]||'#888'}"></div></div><span class="val">${count}</span></div>`).join('') : '<div class="empty-tip">暂无数据</div>');
-    const pris = {high:0,mid:0,low:0}; totalInRange.forEach(t => pris[t.priority]++);
+    const pris = {high:0,mid:0,low:0}; totalTodos.forEach(t => pris[t.priority]++);
     document.getElementById('stats-priority').innerHTML = `<h3>优先级分布</h3>
-        <div class="stat-row"><span class="name">高</span><div class="bar"><div class="bar-fill" style="width:${totalInRange.length?pris.high/totalInRange.length*100:0}%;background:var(--danger)"></div></div><span class="val">${pris.high}</span></div>
-        <div class="stat-row"><span class="name">中</span><div class="bar"><div class="bar-fill" style="width:${totalInRange.length?pris.mid/totalInRange.length*100:0}%;background:var(--warning)"></div></div><span class="val">${pris.mid}</span></div>
-        <div class="stat-row"><span class="name">低</span><div class="bar"><div class="bar-fill" style="width:${totalInRange.length?pris.low/totalInRange.length*100:0}%;background:var(--success)"></div></div><span class="val">${pris.low}</span></div>`;
+        <div class="stat-row"><span class="name">高</span><div class="bar"><div class="bar-fill" style="width:${totalTodos.length?pris.high/totalTodos.length*100:0}%;background:var(--danger)"></div></div><span class="val">${pris.high}</span></div>
+        <div class="stat-row"><span class="name">中</span><div class="bar"><div class="bar-fill" style="width:${totalTodos.length?pris.mid/totalTodos.length*100:0}%;background:var(--warning)"></div></div><span class="val">${pris.mid}</span></div>
+        <div class="stat-row"><span class="name">低</span><div class="bar"><div class="bar-fill" style="width:${totalTodos.length?pris.low/totalTodos.length*100:0}%;background:var(--success)"></div></div><span class="val">${pris.low}</span></div>`;
     const avgProgress = data.goals.length ? Math.round(data.goals.reduce((s,g)=>s+g.progress,0)/data.goals.length) : 0;
     document.getElementById('stats-goals').innerHTML = `<h3>目标概览</h3>
         <div class="stat-row"><span class="name">已完成</span><div class="bar"><div class="bar-fill" style="width:${data.goals.length?goalsDone/data.goals.length*100:0}%;background:var(--success)"></div></div><span class="val">${goalsDone}</span></div>
@@ -680,7 +684,7 @@ function renderDiaries() {
         groups[key].map(d => `
         <div class="diary-item" onclick="editDiary('${d.id}')">
             <h3>${d.emoji||''} ${d.title}</h3>
-            <div class="diary-meta"><span>${relTime(d.date)}</span></div>
+            <div class="diary-meta"><span>${relTime(d.date)}</span>${d.audio?'<span>🎤</span>':''}</div>
             ${d.image ? `<img src="${d.image}" class="diary-thumb" loading="lazy" />` : ''}
             <div class="diary-preview">${(d.content||'').slice(0,80)}</div></div>`).join('') +
         '</div></div>'
@@ -699,20 +703,32 @@ function editDiary(id) {
     editingDiaryId = id;
     editingDiaryImage = d.image || '';
     editingDiaryImagePublicId = d.imagePublicId || '';
+    editingDiaryAudio = d.audio || '';
+    editingDiaryAudioPublicId = d.audioPublicId || '';
     document.getElementById('diary-edit-title').value = d.title;
     document.getElementById('diary-edit-date').value = d.date;
     document.getElementById('diary-edit-mood').value = d.emoji || '😊';
     document.getElementById('diary-edit-content').value = d.content || '';
-    const preview = document.getElementById('diary-image-preview');
+    const imgPreview = document.getElementById('diary-image-preview');
     if (editingDiaryImage) {
-        preview.innerHTML = '<img src="' + editingDiaryImage + '" /><button class="diary-image-remove" onclick="removeDiaryImage()">✕</button>';
-        preview.classList.remove('hidden');
+        imgPreview.innerHTML = '<img src="' + editingDiaryImage + '" /><button class="diary-image-remove" onclick="removeDiaryImage()">✕</button>';
+        imgPreview.classList.remove('hidden');
     } else {
-        preview.innerHTML = '';
-        preview.classList.add('hidden');
+        imgPreview.innerHTML = '';
+        imgPreview.classList.add('hidden');
+    }
+    const audioPreview = document.getElementById('diary-audio-preview');
+    if (editingDiaryAudio) {
+        audioPreview.innerHTML = '<audio src="' + editingDiaryAudio + '" controls style="width:100%"></audio><button class="diary-image-remove" onclick="removeDiaryAudio()">✕</button>';
+        audioPreview.classList.remove('hidden');
+    } else {
+        audioPreview.innerHTML = '';
+        audioPreview.classList.add('hidden');
     }
     document.getElementById('diary-image-status').textContent = '';
     document.getElementById('diary-image-btn').textContent = '📷 添加图片';
+    document.getElementById('diary-audio-status').textContent = '';
+    document.getElementById('diary-audio-btn').textContent = '🎤 录音';
     document.getElementById('diary-modal').classList.remove('hidden');
 }
 function saveDiary() {
@@ -724,6 +740,8 @@ function saveDiary() {
         d.content = document.getElementById('diary-edit-content').value;
         d.image = editingDiaryImage || '';
         d.imagePublicId = editingDiaryImagePublicId || '';
+        d.audio = editingDiaryAudio || '';
+        d.audioPublicId = editingDiaryAudioPublicId || '';
         saveData(); renderDiaries();
     }
     document.getElementById('diary-modal').classList.add('hidden');
@@ -775,6 +793,93 @@ document.getElementById('diary-image-input').addEventListener('change', async (e
     } finally {
         document.getElementById('diary-image-btn').disabled = false;
         document.getElementById('diary-image-input').value = '';
+    }
+});
+
+// ====== Diary Audio Recording ======
+async function startRecording() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'];
+        let mimeType = '';
+        for (const mt of mimeTypes) { if (MediaRecorder.isTypeSupported(mt)) { mimeType = mt; break; } }
+        mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+        audioChunks = [];
+        recordingSeconds = 0;
+        mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+        mediaRecorder.onstop = async () => {
+            stream.getTracks().forEach(t => t.stop());
+            const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+            if (audioBlob.size > 2 * 1024 * 1024) {
+                document.getElementById('diary-audio-status').textContent = '录音超过2MB限制，请缩短时长';
+                document.getElementById('diary-audio-btn').textContent = '🎤 录音';
+                document.getElementById('diary-audio-btn').disabled = false;
+                return;
+            }
+            document.getElementById('diary-audio-status').textContent = '上传中...';
+            document.getElementById('diary-audio-btn').disabled = true;
+            const formData = new FormData();
+            const ext = (mediaRecorder.mimeType || 'audio/webm').split(';')[0].split('/')[1] || 'webm';
+            formData.append('audio', audioBlob, 'recording.' + ext);
+            try {
+                const res = await fetch('/api/upload/audio', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token },
+                    body: formData
+                });
+                const result = await res.json();
+                if (result.error) {
+                    document.getElementById('diary-audio-status').textContent = '上传失败: ' + result.error;
+                    return;
+                }
+                editingDiaryAudio = result.url;
+                editingDiaryAudioPublicId = result.publicId;
+                const preview = document.getElementById('diary-audio-preview');
+                preview.innerHTML = '<audio src="' + result.url + '" controls style="width:100%"></audio><button class="diary-image-remove" onclick="removeDiaryAudio()">✕</button>';
+                preview.classList.remove('hidden');
+                document.getElementById('diary-audio-status').textContent = '';
+            } catch(err) {
+                document.getElementById('diary-audio-status').textContent = '上传失败，请重试';
+            } finally {
+                document.getElementById('diary-audio-btn').textContent = '🎤 录音';
+                document.getElementById('diary-audio-btn').disabled = false;
+            }
+        };
+        mediaRecorder.start();
+        document.getElementById('diary-audio-btn').textContent = '⏹ 停止';
+        document.getElementById('diary-audio-status').textContent = '录音中... 0s (最长60s)';
+        recordingTimer = setInterval(() => {
+            recordingSeconds++;
+            document.getElementById('diary-audio-status').textContent = '录音中... ' + recordingSeconds + 's (最长60s)';
+            if (recordingSeconds >= 60) stopRecording();
+        }, 1000);
+    } catch(err) {
+        document.getElementById('diary-audio-status').textContent = '无法访问麦克风，请检查权限';
+    }
+}
+function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+        clearInterval(recordingTimer);
+        recordingTimer = null;
+        document.getElementById('diary-audio-status').textContent = '处理中...';
+    }
+}
+function removeDiaryAudio() {
+    if (editingDiaryAudioPublicId) {
+        api('/api/upload/delete', 'POST', { publicId: editingDiaryAudioPublicId });
+    }
+    editingDiaryAudio = '';
+    editingDiaryAudioPublicId = '';
+    const preview = document.getElementById('diary-audio-preview');
+    preview.innerHTML = '';
+    preview.classList.add('hidden');
+}
+document.getElementById('diary-audio-btn').addEventListener('click', () => {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+        stopRecording();
+    } else {
+        startRecording();
     }
 });
 
