@@ -1,251 +1,436 @@
-* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-:root { --primary: #6366f1; --primary-light: #818cf8; --bg: #0f0f14; --card: #1a1a24; --card-light: #24242f; --text: #e5e5e5; --text-dim: #888; --border: #2a2a3a; --danger: #ef4444; --success: #22c55e; --warning: #f59e0b; }
-html, body { height: 100%; }
-body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans CJK SC', sans-serif; overscroll-behavior: none; }
+const express = require('express');
+const path = require('path');
+const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
 
-/* Auth Page */
-.auth-page { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
-.auth-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 32px; width: 100%; max-width: 380px; }
-.auth-card h1 { text-align: center; font-size: 24px; background: linear-gradient(135deg, var(--primary), var(--primary-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 8px; }
-.auth-subtitle { text-align: center; font-size: 13px; color: var(--text-dim); margin-bottom: 24px; }
-.auth-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
-.auth-tab { flex: 1; padding: 10px; background: var(--card-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-dim); font-size: 14px; cursor: pointer; transition: all 0.2s; }
-.auth-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
-.auth-input { width: 100%; background: var(--card-light); border: 1px solid var(--border); border-radius: 8px; padding: 12px; color: var(--text); font-size: 15px; outline: none; margin-bottom: 12px; }
-.auth-input:focus { border-color: var(--primary); }
-.auth-btn { width: 100%; background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 12px; font-size: 16px; cursor: pointer; transition: background 0.2s; }
-.auth-btn:hover { background: var(--primary-light); }
-.auth-error { color: var(--danger); font-size: 13px; text-align: center; min-height: 20px; margin-top: 8px; }
-.password-rules { color: var(--danger); font-size: 12px; margin: -6px 0 8px 2px; line-height: 1.4; }
-.password-rules.valid { color: var(--success); }
-.forgot-link { display: block; text-align: center; color: var(--primary-light); font-size: 13px; margin-top: 12px; background: none; border: none; cursor: pointer; text-decoration: none; width: 100%; }
-.forgot-link:hover { text-decoration: underline; }
-.forgot-question-text { background: var(--card-light); border-radius: 8px; padding: 12px; font-size: 14px; color: var(--text); margin-bottom: 12px; text-align: center; }
-.forgot-success-icon { font-size: 48px; color: var(--success); text-align: center; margin: 20px 0; }
-.admin-reset-btn { background: rgba(245,158,11,0.15); color: var(--warning); border: 1px solid rgba(245,158,11,0.3); border-radius: 6px; padding: 3px 10px; font-size: 12px; cursor: pointer; margin-left: 8px; }
-.vault-reset-warning { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; padding: 16px; margin-bottom: 12px; }
-.admin-request-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
-.admin-request-item:last-child { border-bottom: none; }
-.admin-request-item .req-username { font-weight: 600; color: var(--warning); }
-.admin-request-item .req-time { color: var(--text-dim); font-size: 12px; }
+const app = express();
+const PORT = process.env.PORT || 3000;
+const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/life-dashboard';
+const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
 
-/* Main App */
-#app { max-width: 600px; margin: 0 auto; padding-bottom: 70px; min-height: 100vh; }
-.page { padding: 16px; display: flex; flex-direction: column; min-height: calc(100vh - 110px); }
-.hidden { display: none !important; }
+// Cloudinary 配置
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME || '',
+    api_key: process.env.CLOUDINARY_API_KEY || '',
+    api_secret: process.env.CLOUDINARY_API_SECRET || ''
+});
 
-/* Top Bar */
-.top-bar { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--border); }
-.user-badge { font-size: 17px; font-weight: 600; color: var(--text); }
-.top-bar-right { display: flex; align-items: center; gap: 10px; }
-.top-bar-icon { background: none; border: none; color: var(--text-dim); font-size: 20px; cursor: pointer; padding: 4px; }
-.top-bar-icon:hover { color: var(--text); }
-.logout-btn { background: rgba(239,68,68,0.15); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; padding: 4px 12px; font-size: 13px; cursor: pointer; }
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB 限制原图大小
+});
 
-/* Header */
-.header { margin-bottom: 16px; }
-.header h1 { font-size: 22px; margin-bottom: 8px; }
-.stats-hint { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+app.use(express.json({ limit: '15mb' }));
+app.use(express.static(path.join(__dirname, 'public')));
 
-/* Progress Bar */
-.progress-bar { width: 100%; height: 6px; background: var(--card-light); border-radius: 3px; overflow: hidden; margin-top: 8px; }
-.progress-fill { height: 100%; background: var(--primary); border-radius: 3px; transition: width 0.3s; }
-.progress-text { font-size: 12px; color: var(--text-dim); margin-top: 4px; display: block; }
+// ====== Models ======
+const userSchema = new mongoose.Schema({
+    username: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    vaultPassword: { type: String, default: null },
+    securityQuestion: { type: String, default: null },
+    securityAnswer: { type: String, default: null },
+    isAdmin: { type: Boolean, default: false },
+    isSuperAdmin: { type: Boolean, default: false },
+    resetApproved: { type: Boolean, default: false },
+    createdAt: { type: Date, default: Date.now },
+    lastActive: { type: Date, default: Date.now }
+});
 
-/* Filter Tabs */
-.filter-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-.filter-tab { padding: 6px 14px; background: var(--card-light); border: 1px solid var(--border); border-radius: 20px; color: var(--text-dim); font-size: 13px; cursor: pointer; transition: all 0.2s; }
-.filter-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+const dataSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, required: true },
+    todos: { type: Array, default: [] },
+    timers: { type: Array, default: [] },
+    goals: { type: Array, default: [] },
+    countdowns: { type: Array, default: [] },
+    diaries: { type: Array, default: [] },
+    vault: { type: Array, default: [] }
+});
 
-/* List */
-.list { flex: 1; overflow-y: auto; margin-bottom: 8px; }
-.empty-tip { text-align: center; color: var(--text-dim); padding: 40px 0; font-size: 14px; }
+const resetRequestSchema = new mongoose.Schema({
+    username: { type: String, required: true },
+    status: { type: String, default: 'pending' },
+    createdAt: { type: Date, default: Date.now },
+    resolvedAt: { type: Date, default: null }
+});
 
-/* Todo Items */
-.todo-item { display: flex; align-items: center; gap: 10px; background: var(--card); padding: 12px; border-radius: 12px; border-left: 3px solid var(--border); margin-bottom: 8px; -webkit-user-select: none; user-select: none; }
-.todo-item:active { opacity: 0.8; }
-.todo-item.high { border-left-color: var(--danger); }
-.todo-item.mid { border-left-color: var(--warning); }
-.todo-item.low { border-left-color: var(--success); }
-.todo-item.done { opacity: 0.5; }
-.todo-check { width: 22px; height: 22px; border: 2px solid var(--border); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 13px; color: transparent; flex-shrink: 0; }
-.todo-check.done { background: var(--success); border-color: var(--success); color: #fff; }
-.todo-text { font-size: 15px; line-height: 1.4; }
-.todo-text.done { text-decoration: line-through; }
-.todo-meta { display: flex; gap: 8px; font-size: 11px; color: var(--text-dim); margin-top: 3px; }
-.todo-reorder { display: flex; flex-direction: column; gap: 2px; }
-.todo-reorder-btn { background: var(--card-light); border: 1px solid var(--border); border-radius: 4px; width: 22px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--text-dim); cursor: pointer; padding: 0; line-height: 1; }
-.todo-reorder-btn:active { background: var(--primary); color: #fff; }
-.todo-reorder-btn:disabled { opacity: 0.3; cursor: default; }
-.todo-del { color: var(--danger); font-size: 14px; cursor: pointer; padding: 4px; }
+const User = mongoose.model('User', userSchema);
+const Data = mongoose.model('Data', dataSchema);
+const ResetRequest = mongoose.model('ResetRequest', resetRequestSchema);
 
-/* Add Bar */
-.add-bar { display: flex; gap: 8px; padding: 8px 0; flex-wrap: wrap; }
-.add-bar input, .add-bar select { background: var(--card-light); border: 1px solid var(--border); border-radius: 8px; padding: 10px; color: var(--text); font-size: 14px; outline: none; }
-.add-bar input { flex: 1; min-width: 120px; }
-.add-bar select { min-width: 60px; }
-.add-bar button { background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 10px 16px; font-size: 18px; cursor: pointer; }
-.add-bar button:hover { background: var(--primary-light); }
-.date-input-wrap { display: flex; flex-direction: column; gap: 2px; }
-.date-input-wrap label { font-size: 10px; color: var(--text-dim); }
+// ====== MongoDB Connection (with auto-reconnect) ======
+let dbConnected = false;
+mongoose.connect(MONGO_URL, {
+    serverSelectionTimeoutMS: 5000,
+    connectTimeoutMS: 10000,
+    socketTimeoutMS: 45000,
+    maxPoolSize: 10,
+    minPoolSize: 2,
+    retryWrites: true,
+    w: 'majority'
+}).then(async () => {
+    dbConnected = true;
+    console.log('MongoDB connected');
+    // 一次性迁移：确保第一个注册的用户是超级管理员
+    try {
+        const firstUser = await User.findOne().sort({ createdAt: 1 });
+        if (firstUser && firstUser.isAdmin && !firstUser.isSuperAdmin) {
+            await User.findByIdAndUpdate(firstUser._id, { isSuperAdmin: true });
+            console.log('Migrated first user to super admin:', firstUser.username);
+        }
+    } catch(e) { console.error('Migration error:', e.message); }
+}).catch(e => {
+    console.error('MongoDB error:', e.message);
+    console.error('Server will start anyway - DB operations will retry automatically');
+});
 
-/* Timer Items */
-.timer-item { position: relative; background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-.timer-del { position: absolute; right: 12px; top: 8px; color: var(--danger); font-size: 14px; cursor: pointer; }
-.timer-tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px; margin-bottom: 6px; }
-.timer-tag.countdown { background: rgba(99,102,241,0.2); color: var(--primary-light); }
-.timer-tag.countup { background: rgba(34,197,94,0.2); color: var(--success); }
-.timer-item h3 { font-size: 16px; margin-bottom: 8px; }
-.timer-display { font-size: 28px; font-weight: 700; color: var(--text); }
-.timer-display .unit { font-size: 14px; font-weight: 400; color: var(--text-dim); margin-left: 2px; }
-.timer-expired { color: var(--danger); }
+// 监听连接状态变化
+mongoose.connection.on('connected', () => { dbConnected = true; console.log('MongoDB reconnected'); });
+mongoose.connection.on('disconnected', () => { dbConnected = false; console.warn('MongoDB disconnected'); });
+mongoose.connection.on('reconnected', () => { dbConnected = true; console.log('MongoDB reconnected'); });
 
-/* Goal Items */
-.goal-item { position: relative; background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 12px; border-left: 3px solid var(--primary); }
-.goal-item h3 { font-size: 16px; margin-bottom: 4px; }
-.goal-item p { font-size: 13px; color: var(--text-dim); margin-bottom: 12px; }
-.goal-slider { width: 100%; height: 6px; -webkit-appearance: none; appearance: none; background: var(--card-light); border-radius: 3px; outline: none; margin-bottom: 8px; }
-.goal-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--primary); cursor: pointer; }
-.goal-progress { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-dim); }
-.goal-deadline { color: var(--warning); font-size: 12px; }
+// ====== Auth Middleware ======
+async function auth(req, res, next) {
+    try {
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) return res.status(401).json({ error: 'No token' });
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const user = await User.findById(decoded.userId);
+        if (!user) return res.status(401).json({ error: 'User not found' });
+        req.userId = user._id;
+        req.username = user.username;
+        req.isAdmin = user.isAdmin;
+        req.isSuperAdmin = user.isSuperAdmin;
+        user.lastActive = new Date();
+        await user.save();
+        next();
+    } catch(e) {
+        res.status(401).json({ error: 'Invalid token' });
+    }
+}
 
-/* Countdown Items */
-.countdown-item { display: flex; align-items: center; gap: 12px; background: var(--card); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
-.countdown-emoji { font-size: 28px; }
-.countdown-info { flex: 1; }
-.countdown-info h3 { font-size: 15px; }
-.countdown-info p { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
-.countdown-days { font-size: 28px; font-weight: 700; color: var(--primary-light); }
+// ====== Auth Routes ======
+app.post('/api/register', async (req, res) => {
+    try {
+        const { username, password, securityQuestion, securityAnswer } = req.body;
+        if (!username || !password) return res.status(400).json({ error: 'Missing fields' });
+        if (username.length < 2) return res.status(400).json({ error: 'Username too short' });
+        if (password.length < 4 || password.length > 8) return res.status(400).json({ error: 'Password must be 4-8 characters' });
+        if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password))
+            return res.status(400).json({ error: 'Password must contain letters and numbers' });
+        if (!securityQuestion || !securityAnswer || securityAnswer.trim().length < 1)
+            return res.status(400).json({ error: 'Need security Q&A' });
+        
+        const existing = await User.findOne({ username });
+        if (existing) return res.status(400).json({ error: 'Username exists' });
+        
+        const userCount = await User.countDocuments();
+        const hash = await bcrypt.hash(password, 10);
+        const answerHash = await bcrypt.hash(securityAnswer.trim().toLowerCase(), 10);
+        const user = await User.create({
+            username, password: hash, isAdmin: userCount === 0, isSuperAdmin: userCount === 0,
+            securityQuestion, securityAnswer: answerHash
+        });
+        
+        const token = jwt.sign({ userId: user._id, username, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin }, JWT_SECRET);
+        await Data.create({ userId: user._id });
+        res.json({ token, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin });
+    } catch(e) {
+        console.error('Register error:', e.message);
+        res.status(500).json({ error: 'Server error, please try again' });
+    }
+});
 
-/* Stats */
-.stats-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
-.stat-card { background: var(--card); border-radius: 12px; padding: 16px; text-align: center; }
-.stat-card.success { border-left: 3px solid var(--success); }
-.stat-card.warning { border-left: 3px solid var(--warning); }
-.stat-card .num { font-size: 28px; font-weight: 700; }
-.stat-card .label { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
-.stat-card.clickable { cursor: pointer; transition: transform 0.15s; }
-.stat-card.clickable:active { transform: scale(0.97); }
-.stats-section { background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-.stats-section h3 { font-size: 14px; margin-bottom: 12px; }
-.stat-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.stat-row .name { font-size: 13px; min-width: 40px; }
-.stat-row .bar { flex: 1; height: 8px; background: var(--card-light); border-radius: 4px; overflow: hidden; }
-.stat-row .bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
-.stat-row .val { font-size: 13px; min-width: 30px; text-align: right; }
-.stat-row.clickable { cursor: pointer; }
+app.post('/api/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        if (!username || !password) return res.status(400).json({ error: 'Missing fields' });
+        const user = await User.findOne({ username });
+        if (!user) return res.status(400).json({ error: 'User not found' });
+        
+        const match = await bcrypt.compare(password, user.password);
+        if (!match) return res.status(400).json({ error: 'Wrong password' });
+        
+        const token = jwt.sign({ userId: user._id, username, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin }, JWT_SECRET);
+        res.json({ token, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin, hasVault: !!user.vaultPassword });
+    } catch(e) {
+        console.error('Login error:', e.message);
+        res.status(500).json({ error: 'Server error, please try again' });
+    }
+});
 
-/* Stats Details */
-.stats-details { background: var(--card); border-radius: 12px; padding: 12px; margin-bottom: 16px; }
-.stats-detail-group { margin-bottom: 12px; }
-.stats-detail-group-header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--card-light); border-radius: 8px; cursor: pointer; font-size: 13px; }
-.stats-detail-group-header span:first-child { flex: 1; font-weight: 600; }
-.stats-detail-count { font-size: 12px; color: var(--text-dim); }
-.stats-detail-arrow { font-size: 10px; color: var(--text-dim); }
-.stats-detail-group-body { padding: 4px 8px; }
-.stats-record { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
-.stats-record:last-child { border-bottom: none; }
-.stats-record-badge { font-size: 14px; flex-shrink: 0; }
-.stats-record-badge.done { color: var(--success); }
-.stats-record-badge.pending { color: var(--warning); }
-.stats-record-content { flex: 1; }
-.stats-record-time { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+app.get('/api/me', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.userId);
+        res.json({ username: user.username, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin, hasVault: !!user.vaultPassword });
+    } catch(e) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
 
-/* Diary */
-.diary-item { background: var(--card); border-radius: 12px; padding: 14px; margin-bottom: 10px; cursor: pointer; }
-.diary-item h3 { font-size: 15px; margin-bottom: 4px; }
-.diary-meta { font-size: 12px; color: var(--text-dim); margin-bottom: 4px; }
-.diary-preview { font-size: 13px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.diary-thumb { width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin: 6px 0; }
+// ====== Forgot Password (Self-service) ======
+app.post('/api/forgot-password/question', async (req, res) => {
+    try {
+        const { username } = req.body;
+        if (!username) return res.status(400).json({ error: 'Need username' });
+        const user = await User.findOne({ username });
+        if (!user) return res.status(400).json({ error: 'User not found' });
+        if (user.resetApproved) return res.json({ resetApproved: true });
+        if (!user.securityQuestion) return res.status(400).json({ error: 'No security question set' });
+        res.json({ securityQuestion: user.securityQuestion });
+    } catch(e) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
 
-/* Diary Image Upload */
-.diary-image-section { margin-bottom: 12px; }
-.diary-image-preview { position: relative; margin-bottom: 8px; }
-.diary-image-preview img { width: 100%; border-radius: 8px; display: block; }
-.diary-image-remove { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); color: #fff; border: none; border-radius: 50%; width: 28px; height: 28px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 5; }
-.diary-image-btn { background: var(--card-light); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; font-size: 14px; cursor: pointer; }
-.diary-image-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.diary-image-status { font-size: 13px; color: var(--text-dim); margin-left: 8px; }
-.diary-audio-section { margin-bottom: 12px; }
-.diary-audio-preview { position: relative; margin-bottom: 8px; padding: 8px; background: var(--card-light); border-radius: 8px; }
-.diary-month-group { margin-bottom: 12px; }
-.diary-month-header { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--card); border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }
-.diary-month-arrow { font-size: 12px; color: var(--text-dim); }
-.diary-month-count { font-size: 12px; color: var(--text-dim); }
-.diary-month-list { padding: 4px 0; }
+app.post('/api/forgot-password/reset', async (req, res) => {
+    try {
+        const { username, securityAnswer, newPassword } = req.body;
+        if (!username || !newPassword) return res.status(400).json({ error: 'Missing fields' });
+        if (newPassword.length < 4) return res.status(400).json({ error: 'Password too short' });
+        
+        const user = await User.findOne({ username });
+        if (!user) return res.status(400).json({ error: 'User not found' });
+        
+        if (user.resetApproved) {
+            const hash = await bcrypt.hash(newPassword, 10);
+            await User.findByIdAndUpdate(user._id, { password: hash, resetApproved: false });
+            await ResetRequest.updateMany({ username, status: 'pending' }, { status: 'resolved', resolvedAt: new Date() });
+            return res.json({ ok: true });
+        }
+        
+        if (!securityAnswer) return res.status(400).json({ error: 'Missing answer' });
+        if (!user.securityAnswer) return res.status(400).json({ error: 'No security question set' });
+        
+        const match = await bcrypt.compare(securityAnswer.trim().toLowerCase(), user.securityAnswer);
+        if (!match) return res.status(400).json({ error: 'Wrong answer' });
+        
+        const hash = await bcrypt.hash(newPassword, 10);
+        await User.findByIdAndUpdate(user._id, { password: hash });
+        res.json({ ok: true });
+    } catch(e) {
+        console.error('Forgot reset error:', e.message);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
 
-/* Vault */
-.vault-section { padding: 20px; text-align: center; }
-.vault-tip { font-size: 13px; color: var(--text-dim); line-height: 1.6; margin-bottom: 16px; }
-.vault-lock-icon { font-size: 48px; margin-bottom: 16px; }
-.vault-lockback-btn { background: var(--card-light); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; font-size: 14px; cursor: pointer; margin-top: 12px; width: 100%; }
-.vault-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
-.vault-tab { padding: 6px 14px; background: var(--card-light); border: 1px solid var(--border); border-radius: 20px; color: var(--text-dim); font-size: 13px; cursor: pointer; }
-.vault-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
-.vault-item { display: flex; align-items: center; gap: 12px; background: var(--card); border-radius: 12px; padding: 14px; margin-bottom: 10px; cursor: pointer; }
-.vault-item-icon { font-size: 24px; }
-.vault-item-info { flex: 1; }
-.vault-item-info h3 { font-size: 14px; }
-.vault-item-info p { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
-.vault-item-del { color: var(--danger); font-size: 14px; cursor: pointer; }
+// ====== Forgot Password - Request Admin Reset ======
+app.post('/api/forgot-password/request-admin', async (req, res) => {
+    try {
+        const { username } = req.body;
+        if (!username) return res.status(400).json({ error: 'Need username' });
+        
+        const user = await User.findOne({ username });
+        if (!user) return res.status(400).json({ error: 'User not found' });
+        
+        const existing = await ResetRequest.findOne({ username, status: 'pending' });
+        if (existing) return res.status(400).json({ error: 'Already requested' });
+        
+        await ResetRequest.create({ username, status: 'pending' });
+        res.json({ ok: true });
+    } catch(e) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
 
-/* Sub Navigation */
-.sub-nav { display: flex; gap: 8px; margin-bottom: 16px; }
-.sub-nav-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; background: var(--card-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-dim); font-size: 14px; cursor: pointer; }
-.sub-nav-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
-.sub-nav-icon { font-size: 18px; }
+// ====== Vault Password Routes ======
+app.post('/api/vault/setup', auth, async (req, res) => {
+    try {
+        const { vaultPassword } = req.body;
+        if (!vaultPassword || vaultPassword.length < 4) return res.status(400).json({ error: 'Too short' });
+        const hash = await bcrypt.hash(vaultPassword, 10);
+        await User.findByIdAndUpdate(req.userId, { vaultPassword: hash });
+        res.json({ ok: true });
+    } catch(e) { res.status(500).json({ error: 'Server error' }); }
+});
 
-/* Bottom Nav */
-.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; max-width: 600px; margin: 0 auto; display: flex; background: var(--card); border-top: 1px solid var(--border); z-index: 100; }
-.nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 0; background: none; border: none; color: var(--text-dim); font-size: 11px; cursor: pointer; }
-.nav-btn.active { color: var(--primary); }
-.nav-icon { font-size: 20px; }
+app.post('/api/vault/verify', auth, async (req, res) => {
+    try {
+        const { vaultPassword } = req.body;
+        const user = await User.findById(req.userId);
+        if (!user.vaultPassword) return res.status(400).json({ error: 'Vault not set' });
+        const match = await bcrypt.compare(vaultPassword, user.vaultPassword);
+        if (!match) return res.status(400).json({ error: 'Wrong vault password' });
+        res.json({ ok: true });
+    } catch(e) { res.status(500).json({ error: 'Server error' }); }
+});
 
-/* Modal */
-.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 20px; }
-.modal-content { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; width: 100%; max-width: 380px; }
-.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.modal-header h2 { font-size: 18px; }
-.modal-header button { background: none; border: none; color: var(--text-dim); font-size: 18px; cursor: pointer; }
-.modal-input { width: 100%; background: var(--card-light); border: 1px solid var(--border); border-radius: 8px; padding: 12px; color: var(--text); font-size: 15px; outline: none; margin-bottom: 12px; }
-.modal-input:focus { border-color: var(--primary); }
-.modal-textarea { width: 100%; min-height: 120px; background: var(--card-light); border: 1px solid var(--border); border-radius: 8px; padding: 12px; color: var(--text); font-size: 14px; outline: none; resize: vertical; margin-bottom: 12px; line-height: 1.6; font-family: inherit; }
-.modal-textarea:focus { border-color: var(--primary); }
-.modal-actions { display: flex; gap: 8px; }
-.modal-actions button { flex: 1; border: none; border-radius: 8px; padding: 12px; font-size: 15px; cursor: pointer; }
-.modal-save-btn { background: var(--primary); color: #fff; }
-.modal-save-btn:hover { background: var(--primary-light); }
-.modal-del-btn { background: rgba(239,68,68,0.15); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); }
-.modal-vault-btn { background: rgba(99,102,241,0.15); color: var(--primary-light); border: 1px solid rgba(99,102,241,0.3); }
+app.post('/api/vault/reset', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.userId);
+        if (!user.vaultPassword) return res.status(400).json({ error: 'Vault not set' });
+        await User.findByIdAndUpdate(req.userId, { vaultPassword: null });
+        await Data.findOneAndUpdate({ userId: req.userId }, { vault: [] });
+        res.json({ ok: true });
+    } catch(e) { res.status(500).json({ error: 'Server error' }); }
+});
 
-/* Guide Modal */
-.guide-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 300; display: flex; flex-direction: column; }
-.guide-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: var(--card); border-bottom: 1px solid var(--border); }
-.guide-modal-header h2 { font-size: 18px; }
-.guide-modal-header button { background: none; border: none; color: var(--text-dim); font-size: 20px; cursor: pointer; }
-.guide-iframe { flex: 1; border: none; width: 100%; background: #fff; }
+// ====== Data Routes ======
+app.get('/api/data', auth, async (req, res) => {
+    try {
+        let d = await Data.findOne({ userId: req.userId });
+        if (!d) d = await Data.create({ userId: req.userId });
+        res.json({
+            todos: d.todos, timers: d.timers, goals: d.goals,
+            countdowns: d.countdowns, diaries: d.diaries, vault: d.vault
+        });
+    } catch(e) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
 
-/* Admin */
-.admin-badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px; margin-left: 6px; }
-.admin-badge.super { background: rgba(99,102,241,0.2); color: var(--primary-light); }
-.admin-badge:not(.super):not(.user) { background: rgba(34,197,94,0.2); color: var(--success); }
-.admin-badge.user { background: rgba(136,136,136,0.2); color: var(--text-dim); }
-.admin-user-card { background: var(--card); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
-.admin-user-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.admin-user-avatar { font-size: 20px; }
-.admin-username { font-size: 15px; font-weight: 600; flex: 1; }
-.admin-status { font-size: 11px; padding: 2px 8px; border-radius: 10px; }
-.admin-status.active { background: rgba(34,197,94,0.2); color: var(--success); }
-.admin-status.inactive { background: rgba(136,136,136,0.2); color: var(--text-dim); }
-.admin-user-bottom { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-dim); }
-.admin-user-actions { display: flex; gap: 6px; }
-.admin-action-btn { border: none; border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
-.admin-action-btn.add { background: rgba(99,102,241,0.2); color: var(--primary-light); }
-.admin-action-btn.remove { background: rgba(239,68,68,0.15); color: var(--danger); }
-.admin-action-btn.reset { background: rgba(245,158,11,0.15); color: var(--warning); }
-.admin-time { font-size: 11px; }
+app.post('/api/data', auth, async (req, res) => {
+    try {
+        const update = {};
+        for (const key of ['todos', 'timers', 'goals', 'countdowns', 'diaries', 'vault']) {
+            if (req.body[key] !== undefined) update[key] = req.body[key];
+        }
+        await Data.findOneAndUpdate({ userId: req.userId }, update, { upsert: true });
+        res.json({ ok: true });
+    } catch(e) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+// ====== Admin Routes ======
+app.post('/api/admin/set-admin', auth, async (req, res) => {
+    try {
+        if (!req.isSuperAdmin) return res.status(403).json({ error: '超级管理员才能操作' });
+        const { username, makeAdmin } = req.body;
+        if (!username) return res.status(400).json({ error: 'Missing username' });
+        const user = await User.findOne({ username });
+        if (!user) return res.status(400).json({ error: 'User not found' });
+        if (user.isSuperAdmin) return res.status(400).json({ error: '不能修改超级管理员' });
+        await User.findByIdAndUpdate(user._id, { isAdmin: makeAdmin });
+        res.json({ ok: true });
+    } catch(e) { res.status(500).json({ error: 'Server error' }); }
+});
+
+app.post('/api/admin/approve-reset', auth, async (req, res) => {
+    try {
+        if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
+        const { username } = req.body;
+        if (!username) return res.status(400).json({ error: 'Missing username' });
+        const user = await User.findOne({ username });
+        if (!user) return res.status(400).json({ error: 'User not found' });
+        await User.findByIdAndUpdate(user._id, { resetApproved: true });
+        await ResetRequest.updateMany({ username, status: 'pending' }, { status: 'approved', resolvedAt: new Date() });
+        res.json({ ok: true });
+    } catch(e) { res.status(500).json({ error: 'Server error' }); }
+});
+
+app.get('/api/admin/stats', auth, async (req, res) => {
+    try {
+        if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
+        const totalUsers = await User.countDocuments();
+        const now = new Date();
+        const dayAgo = new Date(now.getTime() - 86400000);
+        const weekAgo = new Date(now.getTime() - 604800000);
+        const monthAgo = new Date(now.getTime() - 2592000000);
+        const activeToday = await User.countDocuments({ lastActive: { $gte: dayAgo } });
+        const activeWeek = await User.countDocuments({ lastActive: { $gte: weekAgo } });
+        const activeMonth = await User.countDocuments({ lastActive: { $gte: monthAgo } });
+        const newToday = await User.countDocuments({ createdAt: { $gte: dayAgo } });
+        const newWeek = await User.countDocuments({ createdAt: { $gte: weekAgo } });
+        const users = await User.find({}, { username: 1, createdAt: 1, lastActive: 1, isAdmin: 1, isSuperAdmin: 1, _id: 0 }).sort({ lastActive: -1 });
+        const pendingRequests = await ResetRequest.find({ status: 'pending' }).sort({ createdAt: -1 });
+        res.json({ totalUsers, activeToday, activeWeek, activeMonth, newToday, newWeek, users, pendingRequests });
+    } catch(e) { res.status(500).json({ error: 'Server error' }); }
+});
+
+app.get('/api/admin/reset-requests', auth, async (req, res) => {
+    try {
+        if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
+        const requests = await ResetRequest.find({ status: 'pending' }).sort({ createdAt: -1 });
+        res.json({ requests });
+    } catch(e) { res.status(500).json({ error: 'Server error' }); }
+});
+
+// ====== Image Upload (Cloudinary) ======
+app.post('/api/upload', auth, upload.single('image'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+        const stream = cloudinary.uploader.upload_stream({
+            folder: 'life-dashboard',
+            transformation: [
+                { width: 1280, crop: 'limit' },
+                { quality: 'auto:good' },
+                { fetch_format: 'auto' }
+            ]
+        }, (err, result) => {
+            if (err) {
+                console.error('Cloudinary error:', err.message);
+                return res.status(500).json({ error: 'Upload failed' });
+            }
+            res.json({ url: result.secure_url, publicId: result.public_id });
+        });
+        stream.end(req.file.buffer);
+    } catch(e) {
+        console.error('Upload error:', e.message);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/upload/audio', auth, upload.single('audio'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ error: 'No audio uploaded' });
+        if (req.file.size > 2 * 1024 * 1024) return res.status(400).json({ error: 'Audio exceeds 2MB limit' });
+        const stream = cloudinary.uploader.upload_stream({
+            folder: 'life-dashboard/audio',
+            resource_type: 'auto'
+        }, (err, result) => {
+            if (err) {
+                console.error('Cloudinary audio error:', err.message);
+                return res.status(500).json({ error: 'Upload failed' });
+            }
+            res.json({ url: result.secure_url, publicId: result.public_id });
+        });
+        stream.end(req.file.buffer);
+    } catch(e) {
+        console.error('Audio upload error:', e.message);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/upload/delete', auth, async (req, res) => {
+    try {
+        const { publicId } = req.body;
+        if (!publicId) return res.status(400).json({ error: 'Missing publicId' });
+        await cloudinary.uploader.destroy(publicId);
+        res.json({ ok: true });
+    } catch(e) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// ====== Health Check ======
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', db: dbConnected ? 'connected' : 'disconnected', uptime: process.uptime() });
+});
+
+// ====== Global Error Handler ======
+app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err.message);
+    res.status(500).json({ error: 'Server error' });
+});
+
+// ====== Fallback ======
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// ====== Graceful Shutdown ======
+process.on('unhandledRejection', (err) => {
+    console.error('Unhandled Rejection:', err.message);
+});
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err.message);
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Life Dashboard v2 running at http://localhost:${PORT}`);
+});
