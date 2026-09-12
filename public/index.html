@@ -48,14 +48,12 @@
                 <h2>找回密码</h2>
                 <button id="forgot-modal-close">✕</button>
             </div>
-            <!-- Step 1: 输入用户名 -->
             <div id="forgot-step1">
                 <input type="text" id="forgot-username" placeholder="输入你的用户名" class="modal-input" />
                 <button id="forgot-get-question" class="auth-btn">下一步</button>
                 <p id="forgot-step1-error" class="auth-error"></p>
                 <button id="forgot-request-admin" class="forgot-link" style="margin-top:16px">密保也忘了？找管理员重置</button>
             </div>
-            <!-- Step 2: 回答密保问题 + 设置新密码 -->
             <div id="forgot-step2" class="hidden">
                 <p id="forgot-display-question" class="forgot-question-text"></p>
                 <p id="forgot-admin-approved-msg" class="forgot-question-text" style="color:var(--success);display:none">✓ 管理员已批准你的重置请求，请设置新密码</p>
@@ -66,13 +64,11 @@
                 <p id="forgot-step2-error" class="auth-error"></p>
                 <button id="forgot-request-admin-2" class="forgot-link" style="margin-top:16px">密保也忘了？找管理员重置</button>
             </div>
-            <!-- Step 3: 成功 -->
             <div id="forgot-step3" class="hidden">
                 <div class="forgot-success-icon">✓</div>
                 <p>密码已重置成功！请用新密码登录。</p>
                 <button id="forgot-done" class="auth-btn">好的</button>
             </div>
-            <!-- Step 4: 管理员重置请求 -->
             <div id="forgot-step4" class="hidden">
                 <div class="forgot-success-icon">📨</div>
                 <p>已向管理员发送重置请求</p>
@@ -304,11 +300,6 @@
                 <button type="button" id="diary-image-btn" class="diary-image-btn">📷 添加图片</button>
                 <span id="diary-image-status" class="diary-image-status"></span>
             </div>
-            <div class="diary-audio-section">
-                <div id="diary-audio-preview" class="diary-audio-preview hidden"></div>
-                <button type="button" id="diary-audio-btn" class="diary-image-btn">🎤 录音</button>
-                <span id="diary-audio-status" class="diary-image-status"></span>
-            </div>
             <div class="modal-actions">
                 <button id="diary-to-vault" class="modal-vault-btn">🔒 移入保密柜</button>
                 <button id="diary-save-btn" class="modal-save-btn">保存</button>
@@ -354,7 +345,7 @@
             <h2>📖 使用指南</h2>
             <button id="guide-modal-close">✕</button>
         </div>
-        <iframe id="guide-iframe" src="life-dashboard-guide.html?v=4" class="guide-iframe"></iframe>
+        <iframe id="guide-iframe" src="life-dashboard-guide.html" class="guide-iframe"></iframe>
     </div>
 
     <!-- 底部导航 -->
