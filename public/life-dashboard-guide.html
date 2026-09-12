@@ -1347,6 +1347,7 @@ section.search-hidden { display: none; }
     <a href="#quickstart" class="toc-item"><span class="toc-icon">🚀</span><span class="toc-text">快速上手</span></a>
     <a href="#todo-tips" class="toc-item"><span class="toc-icon">📝</span><span class="toc-text">待办技巧</span></a>
     <a href="#diary-image" class="toc-item"><span class="toc-icon">📷</span><span class="toc-text">日记配图</span></a>
+    <a href="#diary-audio" class="toc-item"><span class="toc-icon">🎤</span><span class="toc-text">日记录音</span></a>
     <a href="#forgot-password" class="toc-item"><span class="toc-icon">🔑</span><span class="toc-text">忘记密码</span></a>
     <a href="#security" class="toc-item"><span class="toc-icon">🛡️</span><span class="toc-text">安全保障</span></a>
     <a href="#capacity" class="toc-item"><span class="toc-icon">📊</span><span class="toc-text">承载能力</span></a>
@@ -1395,7 +1396,7 @@ section.search-hidden { display: none; }
         <div class="feature-card">
             <div class="icon">📖</div>
             <h4>日记</h4>
-            <p>每天写一篇，选个心情 emoji，记录今天发生了什么。支持添加配图、按月归类折叠、预览和编辑。</p>
+            <p>每天写一篇，选个心情 emoji，记录今天发生了什么。支持添加配图和录音、按月归类折叠、预览和编辑。</p>
         </div>
         <div class="feature-card">
             <div class="icon">🔒</div>
@@ -1508,6 +1509,41 @@ section.search-hidden { display: none; }
 
     <div class="callout warning">
         <p><strong>存储说明：</strong> 免费版 Cloudinary 提供 25GB 存储空间，约可存 6 万张压缩后的图片。图片不占用 MongoDB 数据库空间。</p>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== Chapter: 日记录音 ===== -->
+<section>
+    <h2 id="diary-audio">日记录音功能</h2>
+    <p>写日记时可以录音，用声音记录心情。录音存储在 Cloudinary 云端，不占用数据库空间。</p>
+
+    <div class="steps">
+        <div class="step">
+            <h4>点击录音按钮</h4>
+            <p>在日记编辑弹窗中，点击"🎤 录音"按钮，浏览器会请求麦克风权限，点击允许。</p>
+        </div>
+        <div class="step">
+            <h4>开始说话</h4>
+            <p>录音中会显示倒计时（最长 60 秒），页面显示"录音中... Xs"。到 60 秒会自动停止。</p>
+        </div>
+        <div class="step">
+            <h4>停止录音</h4>
+            <p>再点一次按钮（显示"⏹ 停止"）可以提前停止。停止后自动上传到云端，显示"上传中..."。</p>
+        </div>
+        <div class="step">
+            <h4>播放和删除</h4>
+            <p>上传完成后显示音频播放器，可以点播放按钮听录音。播放器右上角有 ✕ 按钮可以删除录音。日记列表有录音的会显示 🎤 标志。</p>
+        </div>
+    </div>
+
+    <div class="callout success">
+        <p><strong>限制说明：</strong> 录音最长 60 秒，文件最大 2MB。使用低采样率压缩，体积小但语音清晰。存 3 万条录音也只占 25GB 云存储的一小部分。</p>
+    </div>
+
+    <div class="callout warning">
+        <p><strong>注意：</strong> 录音功能需要浏览器支持 MediaRecorder API。手机端建议用 Chrome 或 Safari。如果浏览器拒绝麦克风权限，录音功能将不可用。</p>
     </div>
 </section>
 
@@ -1722,6 +1758,14 @@ section.search-hidden { display: none; }
     <div class="faq-item">
         <h4>Q: 日记可以加图片吗？</h4>
         <p>可以。写日记时点"📷 添加图片"按钮，从手机相册或电脑选择图片即可。图片自动上传到 Cloudinary 云端并压缩优化，日记列表会显示缩略图。原图最大 10MB，支持 JPG/PNG/HEIC/WebP 等格式。</p>
+    </div>
+    <div class="faq-item">
+        <h4>Q: 日记可以录音吗？</h4>
+        <p>可以。写日记时点"🎤 录音"按钮，允许麦克风权限后开始说话。录音最长 60 秒，到时间自动停止，也可以提前点"⏹ 停止"。录音上传后显示播放器，可以随时回放。录音存储在云端，不占数据库空间。</p>
+    </div>
+    <div class="faq-item">
+        <h4>Q: 统计里的"待完成"为什么包含昨天的待办？</h4>
+        <p>这是正确的逻辑。"待完成"显示的是<mark class="key">所有当前未完成</mark>的待办，包括之前创建但还没做完的。这样你能在统计页面看到自己还欠着哪些任务。而已完成只统计在选定时间范围内完成的。</p>
     </div>
     <div class="faq-item">
         <h4>Q: 统计的"已完成"是按创建时间还是完成时间算的？</h4>

@@ -1080,7 +1080,7 @@ section { padding: 20px 0px; }
     <h1>版本迭代记录</h1>
     <p class="subtitle">生活管理面板 · 从想法到现实的完整成长轨迹</p>
     <div class="badge-row">
-        <span class="badge green">13 个版本迭代</span>
+        <span class="badge green">14 个版本迭代</span>
         <span class="badge blue">持续优化中</span>
         <span class="badge">完全免费</span>
     </div>
@@ -1088,9 +1088,9 @@ section { padding: 20px 0px; }
 
 <!-- 总览统计 -->
 <div class="stats-row">
-    <div class="stat-box"><div class="num">13</div><div class="label">版本迭代</div></div>
+    <div class="stat-box"><div class="num">14</div><div class="label">版本迭代</div></div>
     <div class="stat-box"><div class="num">5</div><div class="label">重大版本</div></div>
-    <div class="stat-box"><div class="num">50+</div><div class="label">功能点</div></div>
+    <div class="stat-box"><div class="num">55+</div><div class="label">功能点</div></div>
     <div class="stat-box"><div class="num">5</div><div class="label">底部导航（精简后）</div></div>
 </div>
 
@@ -1580,6 +1580,38 @@ section { padding: 20px 0px; }
             </div>
         </div>
 
+        <!-- v3.1 -->
+        <div class="version-block">
+            <div class="version-dot"></div>
+            <div class="version-header">
+                <span class="version-tag">v3.1</span>
+                <span class="version-title">日记录音 · 统计修复</span>
+                <span class="version-date">功能完善</span>
+            </div>
+            <div class="version-card">
+                <p class="version-desc">日记支持录音功能，录音存储在 Cloudinary 云端。修复统计页面待完成计数不包含跨天未完成待办的逻辑错误。</p>
+
+                <div class="change-category">日记录音</div>
+                <ul class="change-list">
+                    <li>写日记时点"录音"按钮，浏览器请求麦克风权限</li>
+                    <li>录音最长 60 秒，文件最大 2MB（低采样率优化）</li>
+                    <li>录音存储在 Cloudinary 云端，不占 MongoDB 空间</li>
+                    <li>录音完成后显示音频播放器，可点播放</li>
+                    <li>日记列表有录音的显示 🎤 标志</li>
+                    <li>支持删除已录音</li>
+                </ul>
+
+                <div class="change-category">统计逻辑修复</div>
+                <ul class="change-list">
+                    <li>修复"日"统计页面待完成只统计当天创建的待办的问题</li>
+                    <li>新的逻辑：待完成 = 所有当前未完成、未归档的待办（跨天也算）</li>
+                    <li>已完成 = 在选定时间范围内完成的待办（按完成时间算）</li>
+                    <li>总数 = 已完成 + 待完成</li>
+                    <li>展开详情的"待完成"也同步修复</li>
+                </ul>
+            </div>
+        </div>
+
     </div>
 </section>
 
@@ -1677,6 +1709,12 @@ section { padding: 20px 0px; }
                     <td>🚀 重大升级</td>
                     <td>日记配图 + 云存储 + 自动压缩 + 性能优化</td>
                 </tr>
+                <tr>
+                    <td class="ver-cell">v3.1</td>
+                    <td>日记录音 · 统计修复</td>
+                    <td>🔧 功能完善</td>
+                    <td>日记录音 + 统计待完成逻辑修复</td>
+                </tr>
             </tbody>
         </table>
     </div>
@@ -1687,7 +1725,7 @@ section { padding: 20px 0px; }
 <!-- 功能模块全景 -->
 <section>
     <h2>功能模块全景</h2>
-    <p style="color:var(--muted);margin-bottom:20px;">经过 13 次迭代，底部导航精简为 5 个图标，页面内通过图标按钮切换子功能。管理后台移至顶栏齿轮图标，统计页面支持点击展开查看详细记录。日记支持配图上传，待办支持长按编辑和优先级排序。</p>
+    <p style="color:var(--muted);margin-bottom:20px;">经过 14 次迭代，底部导航精简为 5 个图标，页面内通过图标按钮切换子功能。管理后台移至顶栏齿轮图标，统计页面支持点击展开查看详细记录。日记支持配图和录音上传，待办支持长按编辑和优先级排序。</p>
 
     <div class="stats-row" style="grid-template-columns: repeat(5, 1fr);">
         <div class="stat-box"><div class="num">✓</div><div class="label">待办清单</div></div>
