@@ -630,7 +630,7 @@ function renderStats() {
     const cats = {}; totalTodos.forEach(t => cats[t.category]=(cats[t.category]||0)+1);
     const catColors = {'工作':'#6366f1','生活':'#22c55e','学习':'#f59e0b','其他':'#888'};
     document.getElementById('stats-category').innerHTML = '<h3>分类统计</h3>' + (Object.keys(cats).length ? Object.entries(cats).map(([name,count]) =>
-        `<div class="stat-row"><span class="name">${name}</span><div class="bar"><div class="bar-fill" style="width:${count/totalInRange.length*100}%;background:${catColors[name]||'#888'}"></div></div><span class="val">${count}</span></div>`).join('') : '<div class="empty-tip">暂无数据</div>');
+        `<div class="stat-row"><span class="name">${name}</span><div class="bar"><div class="bar-fill" style="width:${count/totalTodos.length*100}%;background:${catColors[name]||'#888'}"></div></div><span class="val">${count}</span></div>`).join('') : '<div class="empty-tip">暂无数据</div>');
     const pris = {high:0,mid:0,low:0}; totalTodos.forEach(t => pris[t.priority]++);
     document.getElementById('stats-priority').innerHTML = `<h3>优先级分布</h3>
         <div class="stat-row"><span class="name">高</span><div class="bar"><div class="bar-fill" style="width:${totalTodos.length?pris.high/totalTodos.length*100:0}%;background:var(--danger)"></div></div><span class="val">${pris.high}</span></div>
