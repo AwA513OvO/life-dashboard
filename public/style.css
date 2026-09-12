@@ -162,10 +162,12 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 .diary-image-section { margin-bottom: 12px; }
 .diary-image-preview { position: relative; margin-bottom: 8px; }
 .diary-image-preview img { width: 100%; border-radius: 8px; display: block; }
-.diary-image-remove { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); color: #fff; border: none; border-radius: 50%; width: 28px; height: 28px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.diary-image-remove { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); color: #fff; border: none; border-radius: 50%; width: 28px; height: 28px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 5; }
 .diary-image-btn { background: var(--card-light); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; font-size: 14px; cursor: pointer; }
 .diary-image-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .diary-image-status { font-size: 13px; color: var(--text-dim); margin-left: 8px; }
+.diary-audio-section { margin-bottom: 12px; }
+.diary-audio-preview { position: relative; margin-bottom: 8px; padding: 8px; background: var(--card-light); border-radius: 8px; }
 .diary-month-group { margin-bottom: 12px; }
 .diary-month-header { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--card); border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }
 .diary-month-arrow { font-size: 12px; color: var(--text-dim); }
