@@ -305,15 +305,45 @@ async function loadData() {
     console.log('loadData 完成，todos:', data.todos.length, 'diaries:', data.diaries.length);
 }
 async function saveData() {
+    // ===== 防覆盖锁：如果本地全空，但云端有数据，拒绝保存 =====
+    const isEmpty = !data.todos.length && !data.diaries.length 
+        && !data.goals.length && !data.timers.length 
+        && !data.countdowns.length && !(data.vault || []).length;
+        
+    if (isEmpty) {
+        try {
+            const server = await api('/api/data');
+            const serverEmpty = !server?.todos?.length && !server?.diaries?.length 
+                && !server?.goals?.length && !server?.timers?.length 
+                && !server?.countdowns?.length && !(server?.vault || []).length;
+                
+            if (!serverEmpty) {
+                alert('检测到本地数据异常为空，已阻止覆盖云端，请刷新页面重试！');
+                return; // 直接中断，不执行后面的保存
+            }
+        } catch(e) {
+            // 如果连检查云端都失败了，出于安全考虑，也不保存
+            alert('无法验证云端数据状态，为安全起见已阻止本次保存，请刷新页面重试！');
+            return;
+        }
+    }
+
+    // ===== 正常保存逻辑 =====
     try {
         await api('/api/data', 'POST', data);
         clearSaveError();
     } catch(e) {
         // 失败先重试一次
-        try { await api('/api/data', 'POST', data); clearSaveError(); return; } catch(e2) {}
+        try { 
+            await api('/api/data', 'POST', data); 
+            clearSaveError(); 
+            return; 
+        } catch(e2) {}
+        
         // 仍失败：本地备份 + 提示，避免静默丢数据
         try { localStorage.setItem('data_backup', JSON.stringify(data)); } catch(e3) {}
         showSaveError();
+        alert('⚠️ 数据保存失败！已在本机备份，请立刻刷新页面重试，否则新改动会丢失！');
     }
 }
 function showSaveError() {
