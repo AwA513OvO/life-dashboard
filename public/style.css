@@ -8,7 +8,25 @@ html, body { height: 100%; }
     font-style: normal;
     font-display: swap;
 }
-body { background: var(--bg); color: var(--text);font-family: 'ZCOOL KuaiLe', sans-serif; overscroll-behavior: none; }
+
+/* ===== 字体：标题使用站酷快乐体，正文使用清晰系统字体 ===== */
+.auth-card h1,
+.header h1,
+.timer-item h3,
+.goal-item h3,
+.countdown-info h3,
+.stats-section h3,
+.modal-header h2,
+.guide-modal-header h2,
+.diary-item h3,
+.vault-item-info h3,
+.stats-detail-group-header,
+.diary-month-header {
+    font-family: 'ZCOOL KuaiLe', sans-serif;
+    font-weight: 400;
+}
+
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans CJK SC', 'Microsoft YaHei', sans-serif; overscroll-behavior: none; }
 
 /* Auth Page */
 .auth-page { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; background: radial-gradient(120% 55% at 50% 0%, rgba(99,102,241,.22), transparent 60%), var(--bg); }
@@ -305,5 +323,5 @@ button,
 input,
 select,
 textarea {
-    font-family: inherit;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans CJK SC', 'Microsoft YaHei', sans-serif;
 }
