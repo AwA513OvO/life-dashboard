@@ -43,6 +43,16 @@ function relTime(d) {
     return fmtDate(d);
 }
 
+// ====== Shared helpers ======
+const WEEKDAYS = ['周日','周一','周二','周三','周四','周五','周六'];
+function weekdayName(date) { return WEEKDAYS[new Date(date).getDay()]; }
+function encryptField(text, key) { return CryptoJS.AES.encrypt(text || '', key).toString(); }
+function decryptField(cipher, key, fallback) {
+    if (!key) return fallback !== undefined ? fallback : '🔒 加密内容';
+    try { return CryptoJS.AES.decrypt(cipher, key).toString(CryptoJS.enc.Utf8); }
+    catch(e) { return fallback !== undefined ? fallback : '🔒 加密内容'; }
+}
+
 // ====== Auth ======
 async function checkAuth() {
     if (!token) { showAuth(); return; }
@@ -282,11 +292,42 @@ async function loadData() {
     try { data = await api('/api/data'); } catch(e) {}
 }
 async function saveData() {
-    try { await api('/api/data', 'POST', data); } catch(e) {}
+    try {
+        await api('/api/data', 'POST', data);
+        clearSaveError();
+    } catch(e) {
+        // 失败先重试一次
+        try { await api('/api/data', 'POST', data); clearSaveError(); return; } catch(e2) {}
+        // 仍失败：本地备份 + 提示，避免静默丢数据
+        try { localStorage.setItem('data_backup', JSON.stringify(data)); } catch(e3) {}
+        showSaveError();
+    }
+}
+function showSaveError() {
+    let el = document.getElementById('save-error-banner');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'save-error-banner';
+        el.style.cssText = 'position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#e74c3c;color:#fff;padding:10px 16px;border-radius:8px;z-index:9999;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.3)';
+        document.body.appendChild(el);
+    }
+    el.textContent = '⚠ 数据保存失败，已在本机备份，请刷新页面重试';
+    el.style.display = 'block';
+}
+function clearSaveError() {
+    const el = document.getElementById('save-error-banner');
+    if (el) el.style.display = 'none';
 }
 
 // ====== Todos ======
 function priorityOrder(p) { return p === 'high' ? 0 : p === 'mid' ? 1 : 2; }
+function sortTodosByPriority(items) {
+    return items.sort((a, b) => {
+        if (priorityOrder(a.priority) !== priorityOrder(b.priority))
+            return priorityOrder(a.priority) - priorityOrder(b.priority);
+        return (a.order ?? 999999) - (b.order ?? 999999);
+    });
+}
 let editingTodoId = null;
 let longPressTimer = null;
 
@@ -294,13 +335,7 @@ function renderTodos() {
     const list = document.getElementById('todo-list');
     let items = data.todos.filter(t => !t.archived);
     // 按优先级排序（高→中→低），同优先级按手动顺序排
-    items.sort((a, b) => {
-        if (priorityOrder(a.priority) !== priorityOrder(b.priority))
-            return priorityOrder(a.priority) - priorityOrder(b.priority);
-        const ai = a.order ?? 999999;
-        const bi = b.order ?? 999999;
-        return ai - bi;
-    });
+    sortTodosByPriority(items);
     if (currentFilter === 'active') items = items.filter(t => !t.done);
     if (currentFilter === 'done') items = items.filter(t => t.done);
     list.innerHTML = items.length === 0 ? '<div class="empty-tip">暂无待办事项</div>' : items.map((t, idx) => `
@@ -355,11 +390,7 @@ function addTodo() {
 }
 function moveTodoUp(id) {
     const items = data.todos.filter(t => !t.archived);
-    items.sort((a, b) => {
-        if (priorityOrder(a.priority) !== priorityOrder(b.priority))
-            return priorityOrder(a.priority) - priorityOrder(b.priority);
-        return (a.order ?? 999999) - (b.order ?? 999999);
-    });
+    sortTodosByPriority(items);
     const idx = items.findIndex(t => t.id === id);
     if (idx > 0) {
         const tmp = items[idx].order;
@@ -370,11 +401,7 @@ function moveTodoUp(id) {
 }
 function moveTodoDown(id) {
     const items = data.todos.filter(t => !t.archived);
-    items.sort((a, b) => {
-        if (priorityOrder(a.priority) !== priorityOrder(b.priority))
-            return priorityOrder(a.priority) - priorityOrder(b.priority);
-        return (a.order ?? 999999) - (b.order ?? 999999);
-    });
+    sortTodosByPriority(items);
     const idx = items.findIndex(t => t.id === id);
     if (idx >= 0 && idx < items.length - 1) {
         const tmp = items[idx].order;
@@ -484,8 +511,7 @@ function getStatsGroupKey(dateStr, range) {
     const d = new Date(dateStr);
     if (range === 'day') return null;
     if (range === 'week') {
-        const days = ['周日','周一','周二','周三','周四','周五','周六'];
-        return days[d.getDay()] + ' ' + (d.getMonth()+1) + '/' + d.getDate();
+        return weekdayName(d) + ' ' + (d.getMonth()+1) + '/' + d.getDate();
     }
     if (range === 'month') return '第' + Math.ceil(d.getDate() / 7) + '周';
     if (range === 'year') return (d.getMonth()+1) + '月';
@@ -496,7 +522,7 @@ function formatStatsTime(timeStr, range, isDateOnly) {
     const d = new Date(timeStr);
     if (isDateOnly) {
         if (range === 'day') return '当天';
-        if (range === 'week') { const days = ['周日','周一','周二','周三','周四','周五','周六']; return days[d.getDay()]; }
+        if (range === 'week') { return weekdayName(d); }
         if (range === 'month') return (d.getMonth()+1) + '/' + d.getDate();
         if (range === 'year') return (d.getMonth()+1) + '月' + d.getDate() + '日';
         return '';
@@ -504,7 +530,7 @@ function formatStatsTime(timeStr, range, isDateOnly) {
     const hh = d.getHours().toString().padStart(2,'0');
     const mm = d.getMinutes().toString().padStart(2,'0');
     if (range === 'day') return hh + ':' + mm;
-    if (range === 'week') { const days = ['周日','周一','周二','周三','周四','周五','周六']; return days[d.getDay()] + ' ' + hh + ':' + mm; }
+    if (range === 'week') { return weekdayName(d) + ' ' + hh + ':' + mm; }
     if (range === 'month') return (d.getMonth()+1) + '/' + d.getDate() + ' ' + hh + ':' + mm;
     if (range === 'year') return (d.getMonth()+1) + '月' + d.getDate() + '日';
     return '';
@@ -512,8 +538,7 @@ function formatStatsTime(timeStr, range, isDateOnly) {
 
 function sortGroupKeys(keys, range) {
     if (range === 'week') {
-        const dayOrder = {'周日':0,'周一':1,'周二':2,'周三':3,'周四':4,'周五':5,'周六':6};
-        return keys.sort((a,b) => (dayOrder[a.split(' ')[0]]||0) - (dayOrder[b.split(' ')[0]]||0));
+        return keys.sort((a,b) => WEEKDAYS.indexOf(a.split(' ')[0]) - WEEKDAYS.indexOf(b.split(' ')[0]));
     }
     if (range === 'month' || range === 'year') {
         return keys.sort((a,b) => {
@@ -542,6 +567,18 @@ function toggleStatsGroup(headerEl) {
     arrow.textContent = body.classList.contains('hidden') ? '▶' : '▼';
 }
 
+function getCompletedTodos(startMs) {
+    return data.todos.filter(t => !t.archived && t.done && t.completedAt && new Date(t.completedAt) >= startMs);
+}
+function getPendingTodos() {
+    return data.todos.filter(t => !t.archived && !t.done);
+}
+function getStatsTodos(type, startMs) {
+    if (type === 'done') return getCompletedTodos(startMs);
+    if (type === 'pending') return getPendingTodos();
+    return getCompletedTodos(startMs).concat(getPendingTodos());
+}
+
 function renderStatsDetail(type) {
     const detailEl = document.getElementById('stats-details');
     if (currentStatsDetailType === type) {
@@ -557,16 +594,7 @@ function renderStatsDetail(type) {
     let records = [];
 
     if (type === 'all' || type === 'done' || type === 'pending') {
-        let todos;
-        if (type === 'pending') {
-            todos = data.todos.filter(t => !t.archived && !t.done);
-        } else if (type === 'done') {
-            todos = data.todos.filter(t => t.done && t.completedAt && new Date(t.completedAt) >= startMs);
-        } else {
-            const done = data.todos.filter(t => t.done && t.completedAt && new Date(t.completedAt) >= startMs);
-            const pending = data.todos.filter(t => !t.archived && !t.done);
-            todos = done.concat(pending);
-        }
+        const todos = getStatsTodos(type, startMs);
         records = todos.map(t => ({
             content: t.text,
             time: t.done && t.completedAt ? t.completedAt : t.createdAt,
@@ -610,27 +638,56 @@ function renderStatsDetail(type) {
     }
 }
 
+// ====== 统计图表（#6 美化）======
+function ringChart(percent, color) {
+    percent = Math.max(0, Math.min(100, Math.round(percent) || 0));
+    const r = 26, c = 2 * Math.PI * r;
+    const offset = c * (1 - percent / 100);
+    return `<svg class="ring-chart" viewBox="0 0 64 64" width="72" height="72" aria-label="完成率 ${percent}%">
+        <circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--border)" stroke-width="6"/>
+        <circle cx="32" cy="32" r="${r}" fill="none" stroke="${color}" stroke-width="6"
+            stroke-linecap="round" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${offset.toFixed(1)}"
+            transform="rotate(-90 32 32)" style="transition: stroke-dashoffset .6s ease"/>
+        <text x="32" y="37" text-anchor="middle" class="ring-num" fill="var(--text)">${percent}%</text>
+    </svg>`;
+}
+function miniBars(items) {
+    if (!items.length) return '';
+    const max = Math.max(1, ...items.map(i => i.count));
+    const slot = 100 / items.length;
+    return `<svg class="mini-bars" viewBox="0 0 100 44" preserveAspectRatio="none" width="100%" height="44" aria-label="分类分布">
+        ${items.map((it, i) => {
+            const h = Math.max(2, Math.round(it.count / max * 36));
+            const x = i * slot + 6;
+            const w = slot - 12;
+            return `<rect x="${x.toFixed(1)}" y="${(44 - h).toFixed(1)}" width="${w.toFixed(1)}" height="${h}" rx="2" fill="${it.color}"><title>${it.name}: ${it.count}</title></rect>`;
+        }).join('')}
+    </svg>`;
+}
+
 function renderStats() {
     currentStatsDetailType = null;
     const detailEl = document.getElementById('stats-details');
     if (detailEl) { detailEl.classList.add('hidden'); detailEl.innerHTML = ''; }
 
     const start = getStatsRangeStart(currentStatsRange); const startMs = start.getTime();
-    const completedInRange = data.todos.filter(t => t.done && t.completedAt && new Date(t.completedAt) >= startMs);
-    const pendingTodos = data.todos.filter(t => !t.archived && !t.done);
+    const completedInRange = getCompletedTodos(startMs);
+    const pendingTodos = getPendingTodos();
     const totalTodos = completedInRange.concat(pendingTodos);
     const diariesInRange = data.diaries.filter(d => new Date(d.date) >= startMs);
     const goalsDone = data.goals.filter(g => g.progress >= 100).length;
-    const completionRate = totalTodos.length ? Math.round(completedInRange.length / totalTodos.length * 100) + '%' : '0%';
+    const completionRateNum = totalTodos.length ? Math.round(completedInRange.length / totalTodos.length * 100) : 0;
+    const completionRate = completionRateNum + '%';
     document.getElementById('stats-cards').innerHTML = `
         <div class="stat-card clickable" onclick="renderStatsDetail('all')"><div class="num">${totalTodos.length}</div><div class="label">待办总数</div></div>
         <div class="stat-card success clickable" onclick="renderStatsDetail('done')"><div class="num">${completedInRange.length}</div><div class="label">已完成</div></div>
         <div class="stat-card warning clickable" onclick="renderStatsDetail('pending')"><div class="num">${pendingTodos.length}</div><div class="label">待完成</div></div>
-        <div class="stat-card"><div class="num">${completionRate}</div><div class="label">完成率</div></div>`;
+        <div class="stat-card ring-card"><div class="ring-wrap">${ringChart(completionRateNum, 'var(--primary)')}</div><div class="label">完成率</div></div>`;
     const cats = {}; totalTodos.forEach(t => cats[t.category]=(cats[t.category]||0)+1);
     const catColors = {'工作':'#6366f1','生活':'#22c55e','学习':'#f59e0b','其他':'#888'};
+    const catItems = Object.entries(cats).map(([name,count]) => ({ name, count, color: catColors[name]||'#888' }));
     document.getElementById('stats-category').innerHTML = '<h3>分类统计</h3>' + (Object.keys(cats).length ? Object.entries(cats).map(([name,count]) =>
-        `<div class="stat-row"><span class="name">${name}</span><div class="bar"><div class="bar-fill" style="width:${count/totalTodos.length*100}%;background:${catColors[name]||'#888'}"></div></div><span class="val">${count}</span></div>`).join('') : '<div class="empty-tip">暂无数据</div>');
+        `<div class="stat-row"><span class="name">${name}</span><div class="bar"><div class="bar-fill" style="width:${count/totalTodos.length*100}%;background:${catColors[name]||'#888'}"></div></div><span class="val">${count}</span></div>`).join('') + `<div class="mini-bars-wrap">${miniBars(catItems)}</div>` : '<div class="empty-tip">暂无数据</div>');
     const pris = {high:0,mid:0,low:0}; totalTodos.forEach(t => pris[t.priority]++);
     document.getElementById('stats-priority').innerHTML = `<h3>优先级分布</h3>
         <div class="stat-row"><span class="name">高</span><div class="bar"><div class="bar-fill" style="width:${totalTodos.length?pris.high/totalTodos.length*100:0}%;background:var(--danger)"></div></div><span class="val">${pris.high}</span></div>
@@ -683,12 +740,27 @@ function renderDiaries() {
         '<div class="diary-month-list">' +
         groups[key].map(d => `
         <div class="diary-item" onclick="editDiary('${d.id}')">
-            <h3>${d.emoji||''} ${d.title}</h3>
+            <h3>${d.emoji||''} ${d.title}<button class="diary-del-btn" style="float:right;background:none;border:none;cursor:pointer;font-size:16px;opacity:.55;padding:0 4px;" onclick="event.stopPropagation(); deleteDiary('${d.id}')" title="删除日记">🗑</button></h3>
             <div class="diary-meta"><span>${relTime(d.date)}</span>${d.audio?'<span>🎤</span>':''}</div>
             ${d.image ? `<img src="${d.image}" class="diary-thumb" loading="lazy" />` : ''}
             <div class="diary-preview">${(d.content||'').slice(0,80)}</div></div>`).join('') +
         '</div></div>'
     ).join('');
+}
+async function deleteDiary(id) {
+    if (!confirm('确认删除这篇日记？删除后无法恢复。')) return;
+    const d = data.diaries.find(x => x.id === id);
+    if (!d) return;
+    // 一并清理云端图片/录音，避免留垃圾
+    if (d.imagePublicId) { try { await api('/api/upload/delete', 'POST', { publicId: d.imagePublicId }); } catch(e) {} }
+    if (d.audioPublicId) { try { await api('/api/upload/delete', 'POST', { publicId: d.audioPublicId }); } catch(e) {} }
+    data.diaries = data.diaries.filter(x => x.id !== id);
+    if (editingDiaryId === id) {
+        editingDiaryId = null;
+        document.getElementById('diary-modal').classList.add('hidden');
+    }
+    await saveData();
+    renderDiaries();
 }
 function addDiary() {
     const title = document.getElementById('diary-title').value.trim();
@@ -780,8 +852,8 @@ async function moveDiaryToVault() {
     if (!confirm('确认将这篇日记移入保密柜？\n移入后，这篇日记会从普通日记列表中消失，只有解锁保密柜才能查看。')) return;
 
     try {
-        const encTitle = CryptoJS.AES.encrypt(d.title || '无标题', vaultKey).toString();
-        const encContent = CryptoJS.AES.encrypt(d.content || '', vaultKey).toString();
+        const encTitle = encryptField(d.title || '无标题', vaultKey);
+        const encContent = encryptField(d.content, vaultKey);
 
         const vaultItem = {
             id: uid(),
@@ -957,8 +1029,7 @@ function renderVaultList() {
     if (items.length === 0) { list.innerHTML = '<div class="empty-tip">保密柜为空</div>'; return; }
     const typeIcons = { diary: '📖', todo: '✓', note: '📝' };
     list.innerHTML = items.map(v => {
-        let title = v.title;
-        try { title = vaultKey ? CryptoJS.AES.decrypt(v.title, vaultKey).toString(CryptoJS.enc.Utf8) : '🔒 加密内容'; } catch(e) { title = '🔒 加密内容'; }
+        let title = decryptField(v.title, vaultKey);
         return `<div class="vault-item" onclick="editVault('${v.id}')">
             <span class="vault-item-icon">${typeIcons[v.type]||'📝'}</span>
             <div class="vault-item-info"><h3>${title}</h3><p>${relTime(v.createdAt)}</p></div>
@@ -1030,8 +1101,8 @@ function addVaultItem() {
     const type = document.getElementById('vault-type').value;
     const title = document.getElementById('vault-title').value.trim();
     if (!title) return;
-    const encTitle = CryptoJS.AES.encrypt(title, vaultKey).toString();
-    const encContent = CryptoJS.AES.encrypt('', vaultKey).toString();
+    const encTitle = encryptField(title, vaultKey);
+    const encContent = encryptField('', vaultKey);
     data.vault.push({ id: uid(), type, title: encTitle, content: encContent, createdAt: new Date().toISOString() });
     document.getElementById('vault-title').value = '';
     saveData(); renderVaultList();
@@ -1039,9 +1110,8 @@ function addVaultItem() {
 function editVault(id) {
     const v = (data.vault || []).find(x => x.id === id); if (!v) return;
     editingVaultId = id;
-    let title = '', content = '';
-    try { title = CryptoJS.AES.decrypt(v.title, vaultKey).toString(CryptoJS.enc.Utf8); } catch(e) {}
-    try { content = CryptoJS.AES.decrypt(v.content, vaultKey).toString(CryptoJS.enc.Utf8); } catch(e) {}
+    let title = decryptField(v.title, vaultKey, '');
+    let content = decryptField(v.content, vaultKey, '');
     document.getElementById('vault-edit-title').value = title;
     document.getElementById('vault-edit-content').value = content;
     document.getElementById('vault-modal').classList.remove('hidden');
@@ -1050,8 +1120,8 @@ function saveVaultItem() {
     const v = (data.vault || []).find(x => x.id === editingVaultId); if (!v) return;
     const title = document.getElementById('vault-edit-title').value.trim() || '无标题';
     const content = document.getElementById('vault-edit-content').value;
-    v.title = CryptoJS.AES.encrypt(title, vaultKey).toString();
-    v.content = CryptoJS.AES.encrypt(content, vaultKey).toString();
+    v.title = encryptField(title, vaultKey);
+    v.content = encryptField(content, vaultKey);
     saveData(); renderVaultList();
     document.getElementById('vault-modal').classList.add('hidden');
 }
@@ -1145,18 +1215,20 @@ document.querySelectorAll('.sub-nav-btn').forEach(btn => {
 });
 
 // ====== Filter Tabs ======
-document.querySelectorAll('#todo-filters .filter-tab').forEach(tab => {
-    tab.addEventListener('click', () => { document.querySelectorAll('#todo-filters .filter-tab').forEach(t => t.classList.remove('active')); tab.classList.add('active'); currentFilter = tab.dataset.filter; renderTodos(); });
-});
-document.querySelectorAll('#timer-filters .filter-tab').forEach(tab => {
-    tab.addEventListener('click', () => { document.querySelectorAll('#timer-filters .filter-tab').forEach(t => t.classList.remove('active')); tab.classList.add('active'); currentTimerFilter = tab.dataset.filter; renderTimers(); });
-});
-document.querySelectorAll('#stats-filters .filter-tab').forEach(tab => {
-    tab.addEventListener('click', () => { document.querySelectorAll('#stats-filters .filter-tab').forEach(t => t.classList.remove('active')); tab.classList.add('active'); currentStatsRange = tab.dataset.statsRange; renderStats(); });
-});
-document.querySelectorAll('.vault-tab').forEach(tab => {
-    tab.addEventListener('click', () => { document.querySelectorAll('.vault-tab').forEach(t => t.classList.remove('active')); tab.classList.add('active'); currentVaultFilter = tab.dataset.vaultFilter; renderVaultList(); });
-});
+function bindFilterTabs(selector, datasetKey, setState, render) {
+    document.querySelectorAll(selector).forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll(selector).forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            setState(tab.dataset[datasetKey]);
+            render();
+        });
+    });
+}
+bindFilterTabs('#todo-filters .filter-tab', 'filter', v => currentFilter = v, renderTodos);
+bindFilterTabs('#timer-filters .filter-tab', 'filter', v => currentTimerFilter = v, renderTimers);
+bindFilterTabs('#stats-filters .filter-tab', 'statsRange', v => currentStatsRange = v, renderStats);
+bindFilterTabs('.vault-tab', 'vaultFilter', v => currentVaultFilter = v, renderVaultList);
 
 // ====== Event Bindings ======
 document.getElementById('todo-add-btn').addEventListener('click', addTodo);
