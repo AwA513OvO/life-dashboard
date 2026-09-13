@@ -581,18 +581,19 @@ function toggleStatsGroup(headerEl) {
 }
 
 function getCompletedTodos(startMs) {
-    // 同样去掉 !t.archived 限制，统计所有已完成
-    function getCompletedTodos(startMs) {
-    return data.todos.filter(t => {
-        if (!t.done) return false;
-        // 没完成时间就按创建时间算
+    if (!data || !Array.isArray(data.todos)) return [];
+    const list = data.todos.filter(t => {
+        if (!t || !t.done) return false;
         const time = t.completedAt || t.createdAt;
         return time && new Date(time) >= startMs;
     });
+    return list || [];
 }
-}
+
 function getPendingTodos() {
-    return data.todos.filter(t => !t.done);
+    if (!data || !Array.isArray(data.todos)) return [];
+    const list = data.todos.filter(t => t && !t.done);
+    return list || [];
 }
 function getStatsTodos(type, startMs) {
     if (type === 'done') return getCompletedTodos(startMs);
@@ -694,7 +695,7 @@ function renderStats() {
     const start = getStatsRangeStart(currentStatsRange); const startMs = start.getTime();
     const completedInRange = getCompletedTodos(startMs);
     const pendingTodos = getPendingTodos();
-    const totalTodos = completedInRange.concat(pendingTodos);
+    const totalTodos = (completedInRange || []).concat(pendingTodos || []);
     const diariesInRange = data.diaries.filter(d => new Date(d.date) >= startMs);
     const goalsDone = data.goals.filter(g => g.progress >= 100).length;
     const completionRateNum = totalTodos.length ? Math.round(completedInRange.length / totalTodos.length * 100) : 0;
