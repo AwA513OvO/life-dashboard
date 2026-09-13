@@ -283,7 +283,7 @@ app.post('/api/vault/reset', auth, async (req, res) => {
 // ====== Data Routes ======
 app.get('/api/data', auth, async (req, res) => {
     try {
-        let d = await Data.findOne({ userId: req.userId });
+        let d = await Data.findOne({ userId: req.user._id });
         if (!d) d = await Data.create({ userId: req.userId });
         res.json({
             todos: d.todos, timers: d.timers, goals: d.goals,
@@ -310,7 +310,7 @@ app.post('/api/data', auth, async (req, res) => {
             }
             update[key] = arr;
         }
-        await Data.findOneAndUpdate({ userId: req.userId }, update, { upsert: true });
+        await Data.findOneAndUpdate({userId: req.user._id }, update, { upsert: true });
         res.json({ ok: true });
     } catch(e) {
         res.status(500).json({ error: 'Server error' });
