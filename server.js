@@ -113,7 +113,7 @@ async function auth(req, res, next) {
         const decoded = jwt.verify(token, JWT_SECRET);
         const user = await User.findById(decoded.userId);
         if (!user) return res.status(401).json({ error: 'User not found' });
-        req.userId = user._id;
+        req.user = user;
         req.username = user.username;
         req.isAdmin = user.isAdmin;
         req.isSuperAdmin = user.isSuperAdmin;
@@ -176,7 +176,7 @@ app.post('/api/login', async (req, res) => {
 
 app.get('/api/me', auth, async (req, res) => {
     try {
-        const user = await User.findById(req.userId);
+        const user = await User.findById(req.user._id);
         res.json({ username: user.username, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin, hasVault: !!user.vaultPassword });
     } catch(e) {
         res.status(500).json({ error: 'Server error' });
@@ -254,7 +254,7 @@ app.post('/api/vault/setup', auth, async (req, res) => {
         const { vaultPassword } = req.body;
         if (!vaultPassword || vaultPassword.length < 4) return res.status(400).json({ error: 'Too short' });
         const hash = await bcrypt.hash(vaultPassword, 10);
-        await User.findByIdAndUpdate(req.userId, { vaultPassword: hash });
+        await User.findByIdAndUpdate(req.user._id, { vaultPassword: hash });
         res.json({ ok: true });
     } catch(e) { res.status(500).json({ error: 'Server error' }); }
 });
@@ -262,7 +262,7 @@ app.post('/api/vault/setup', auth, async (req, res) => {
 app.post('/api/vault/verify', auth, async (req, res) => {
     try {
         const { vaultPassword } = req.body;
-        const user = await User.findById(req.userId);
+        const user = await User.findById(req.user._id);
         if (!user.vaultPassword) return res.status(400).json({ error: 'Vault not set' });
         const match = await bcrypt.compare(vaultPassword, user.vaultPassword);
         if (!match) return res.status(400).json({ error: 'Wrong vault password' });
@@ -272,10 +272,10 @@ app.post('/api/vault/verify', auth, async (req, res) => {
 
 app.post('/api/vault/reset', auth, async (req, res) => {
     try {
-        const user = await User.findById(req.userId);
+        const user = await User.findById(req.user._id);
         if (!user.vaultPassword) return res.status(400).json({ error: 'Vault not set' });
-        await User.findByIdAndUpdate(req.userId, { vaultPassword: null });
-        await Data.findOneAndUpdate({ userId: req.userId }, { vault: [] });
+        await User.findByIdAndUpdate(req.user._id, { vaultPassword: null });
+        await Data.findOneAndUpdate({ userId: req.user._id }, { vault: [] });
         res.json({ ok: true });
     } catch(e) { res.status(500).json({ error: 'Server error' }); }
 });
@@ -284,7 +284,7 @@ app.post('/api/vault/reset', auth, async (req, res) => {
 app.get('/api/data', auth, async (req, res) => {
     try {
         let d = await Data.findOne({ userId: req.user._id });
-        if (!d) d = await Data.create({ userId: req.userId });
+        if (!d) d = await Data.create({ userId: req.user._id });
         res.json({
             todos: d.todos, timers: d.timers, goals: d.goals,
             countdowns: d.countdowns, diaries: d.diaries, vault: d.vault
