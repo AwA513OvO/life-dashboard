@@ -581,10 +581,12 @@ function toggleStatsGroup(headerEl) {
 }
 
 function getCompletedTodos(startMs) {
-    return data.todos.filter(t => !t.archived && t.done && t.completedAt && new Date(t.completedAt) >= startMs);
+    // 同样去掉 !t.archived 限制，统计所有已完成
+    return data.todos.filter(t => t.done && t.completedAt && new Date(t.completedAt) >= startMs);
 }
 function getPendingTodos() {
-    return data.todos.filter(t => !t.archived && !t.done);
+    // 只过滤未完成，不再排除已归档，防止统计为0
+    return data.todos.filter(t => !t.done);
 }
 function getStatsTodos(type, startMs) {
     if (type === 'done') return getCompletedTodos(startMs);
