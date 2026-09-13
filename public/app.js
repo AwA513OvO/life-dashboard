@@ -66,7 +66,11 @@ async function checkAuth() {
         document.getElementById('auth-page').classList.add('hidden');
         document.getElementById('app').classList.remove('hidden');
         renderAll();
-    } catch(e) { showAuth(); }
+          } catch(e) {
+        console.error('checkAuth 失败:', e);
+        alert('数据加载失败，请刷新页面重试。为避免覆盖云端数据，请不要在当前页面操作。');
+        showAuth();
+    }
 }
 
 function showAuth() {
@@ -289,7 +293,16 @@ async function setAdmin(username, makeAdmin) {
 
 // ====== Data ======
 async function loadData() {
-    try { data = await api('/api/data'); } catch(e) {}
+    const res = await api('/api/data');
+    if (!res || res.error) throw new Error('load failed');
+    // 逐个字段赋值，避免后端返回缺字段导致前端报错
+    data.todos = res.todos || [];
+    data.timers = res.timers || [];
+    data.goals = res.goals || [];
+    data.countdowns = res.countdowns || [];
+    data.diaries = res.diaries || [];
+    data.vault = res.vault || [];
+    console.log('loadData 完成，todos:', data.todos.length, 'diaries:', data.diaries.length);
 }
 async function saveData() {
     try {
