@@ -1194,6 +1194,7 @@ async function renderAdmin() {
 // ====== Render All ======
 function renderAll() {
     renderTodos(); renderTimers(); renderGoals(); renderCountdowns(); renderDiaries();
+    renderStats(); // 加上这行，页面加载时把统计也渲染一遍
 }
 
 // ====== Navigation ======
@@ -1205,7 +1206,10 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
         document.getElementById('page-' + btn.dataset.page).classList.remove('hidden');
         timerPageVisible = (btn.dataset.page === 'timers');
         if (timerPageVisible) renderTimers();
-        if (btn.dataset.page === 'stats') renderStats();
+        if (btn.dataset.page === 'stats') {
+    renderStats();
+    renderStatsDetail(currentStatsDetailType); // 保持详情展开状态
+}
         if (btn.dataset.page === 'goals') { renderGoals(); renderCountdowns(); }
         if (btn.dataset.page === 'diary') { renderDiaries(); renderVaultState(); }
     });
