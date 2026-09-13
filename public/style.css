@@ -1,7 +1,14 @@
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 :root { --primary: #6366f1; --primary-light: #818cf8; --bg: #0f0f14; --card: #1a1a24; --card-light: #24242f; --text: #e5e5e5; --text-dim: #888; --border: #2a2a3a; --danger: #ef4444; --success: #22c55e; --warning: #f59e0b; --shadow: 0 4px 16px rgba(0,0,0,.35); --shadow-hover: 0 8px 28px rgba(99,102,241,.28); }
 html, body { height: 100%; }
-body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans CJK SC', sans-serif; overscroll-behavior: none; }
+@font-face {
+    font-family: 'ZCOOL KuaiLe';
+    src: url('./fonts/ZCOOLKuaiLe-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+body { background: var(--bg); color: var(--text);font-family: 'ZCOOL KuaiLe', sans-serif; overscroll-behavior: none; }
 
 /* Auth Page */
 .auth-page { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; background: radial-gradient(120% 55% at 50% 0%, rgba(99,102,241,.22), transparent 60%), var(--bg); }
@@ -293,3 +300,10 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 .list > *:nth-child(6) { animation-delay: 150ms; }
 .list > *:nth-child(7) { animation-delay: 180ms; }
 .list > *:nth-child(8) { animation-delay: 210ms; }
+
+button,
+input,
+select,
+textarea {
+    font-family: inherit;
+}
