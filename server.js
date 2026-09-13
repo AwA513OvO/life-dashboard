@@ -4,13 +4,25 @@ const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const fs = require('fs');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/life-dashboard';
-const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
+// JWT 密钥：优先用环境变量；否则读写本地文件（重启不失效）；都没有才临时生成并落盘
+const JWT_SECRET_FILE = path.join(__dirname, '.jwt-secret');
+function loadJwtSecret() {
+    if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
+    try {
+        if (fs.existsSync(JWT_SECRET_FILE)) return fs.readFileSync(JWT_SECRET_FILE, 'utf8').trim();
+    } catch (e) { console.error('读取 JWT 密钥失败:', e.message); }
+    const secret = crypto.randomBytes(32).toString('hex');
+    try { fs.writeFileSync(JWT_SECRET_FILE, secret); } catch (e) { console.error('保存 JWT 密钥失败:', e.message); }
+    return secret;
+}
+const JWT_SECRET = loadJwtSecret();
 
 // Cloudinary 配置
 cloudinary.config({
@@ -105,8 +117,7 @@ async function auth(req, res, next) {
         req.username = user.username;
         req.isAdmin = user.isAdmin;
         req.isSuperAdmin = user.isSuperAdmin;
-        user.lastActive = new Date();
-        await user.save();
+        try { user.lastActive = new Date(); await user.save(); } catch (e) { /* lastActive 更新失败不影响主流程 */ }
         next();
     } catch(e) {
         res.status(401).json({ error: 'Invalid token' });
@@ -136,7 +147,7 @@ app.post('/api/register', async (req, res) => {
             securityQuestion, securityAnswer: answerHash
         });
         
-        const token = jwt.sign({ userId: user._id, username, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin }, JWT_SECRET);
+        const token = jwt.sign({ userId: user._id, username, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin }, JWT_SECRET, { expiresIn: '7d' });
         await Data.create({ userId: user._id });
         res.json({ token, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin });
     } catch(e) {
@@ -155,7 +166,7 @@ app.post('/api/login', async (req, res) => {
         const match = await bcrypt.compare(password, user.password);
         if (!match) return res.status(400).json({ error: 'Wrong password' });
         
-        const token = jwt.sign({ userId: user._id, username, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin }, JWT_SECRET);
+        const token = jwt.sign({ userId: user._id, username, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin }, JWT_SECRET, { expiresIn: '7d' });
         res.json({ token, isAdmin: user.isAdmin, isSuperAdmin: user.isSuperAdmin, hasVault: !!user.vaultPassword });
     } catch(e) {
         console.error('Login error:', e.message);
@@ -285,9 +296,19 @@ app.get('/api/data', auth, async (req, res) => {
 
 app.post('/api/data', auth, async (req, res) => {
     try {
+        const MAX_ITEMS = 5000;            // 单个列表最多条数
+        const MAX_ITEM_BYTES = 1024 * 1024; // 单条记录序列化后最大约 1MB
         const update = {};
         for (const key of ['todos', 'timers', 'goals', 'countdowns', 'diaries', 'vault']) {
-            if (req.body[key] !== undefined) update[key] = req.body[key];
+            const arr = req.body[key];
+            if (arr === undefined) continue;
+            if (!Array.isArray(arr) || arr.length > MAX_ITEMS) {
+                return res.status(400).json({ error: `数据过大：${key} 不能超过 ${MAX_ITEMS} 条` });
+            }
+            if (arr.some(it => it && typeof it === 'object' && JSON.stringify(it).length > MAX_ITEM_BYTES)) {
+                return res.status(400).json({ error: `数据过大：${key} 存在超长条目` });
+            }
+            update[key] = arr;
         }
         await Data.findOneAndUpdate({ userId: req.userId }, update, { upsert: true });
         res.json({ ok: true });
@@ -330,23 +351,12 @@ app.get('/api/admin/stats', auth, async (req, res) => {
         const now = new Date();
         const dayAgo = new Date(now.getTime() - 86400000);
         const weekAgo = new Date(now.getTime() - 604800000);
-        const monthAgo = new Date(now.getTime() - 2592000000);
         const activeToday = await User.countDocuments({ lastActive: { $gte: dayAgo } });
         const activeWeek = await User.countDocuments({ lastActive: { $gte: weekAgo } });
-        const activeMonth = await User.countDocuments({ lastActive: { $gte: monthAgo } });
         const newToday = await User.countDocuments({ createdAt: { $gte: dayAgo } });
-        const newWeek = await User.countDocuments({ createdAt: { $gte: weekAgo } });
         const users = await User.find({}, { username: 1, createdAt: 1, lastActive: 1, isAdmin: 1, isSuperAdmin: 1, _id: 0 }).sort({ lastActive: -1 });
         const pendingRequests = await ResetRequest.find({ status: 'pending' }).sort({ createdAt: -1 });
-        res.json({ totalUsers, activeToday, activeWeek, activeMonth, newToday, newWeek, users, pendingRequests });
-    } catch(e) { res.status(500).json({ error: 'Server error' }); }
-});
-
-app.get('/api/admin/reset-requests', auth, async (req, res) => {
-    try {
-        if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
-        const requests = await ResetRequest.find({ status: 'pending' }).sort({ createdAt: -1 });
-        res.json({ requests });
+        res.json({ totalUsers, activeToday, activeWeek, newToday, users, pendingRequests });
     } catch(e) { res.status(500).json({ error: 'Server error' }); }
 });
 
