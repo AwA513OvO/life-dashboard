@@ -468,33 +468,112 @@ function delTodo(id) {
 
 // ====== Timers ======
 let timerPageVisible = false;
+let timerRefreshTimer = null; // 新增：用于定时刷新数字的定时器
+
+// 把"多少小时多少分钟"转换成未来的日期时间
+function calcTimerDate(hours, minutes) {
+    const now = new Date();
+    now.setHours(now.getHours() + (parseInt(hours) || 0));
+    now.setMinutes(now.getMinutes() + (parseInt(minutes) || 0));
+    return now.toISOString();
+}
+
+// 根据 direction 计算显示的数字（不重建 DOM，只改数字）
+function updateTimerNumbers() {
+    if (!timerPageVisible) return;
+    const items = data.timers;
+    if (currentTimerFilter !== 'all') items = items.filter(t => t.direction === currentTimerFilter);
+    
+    items.forEach(t => {
+        const el = document.querySelector(`.timer-item[data-id="${t.id}"] .timer-display`);
+        if (!el) return;
+        const target = new Date(t.date).getTime(); const now = Date.now();
+        let diff = t.direction === 'countdown' ? target - now : now - target;
+        const expired = diff <= 0; if (expired && t.direction === 'countdown') diff = 0;
+        const d = Math.floor(diff/86400000), h = Math.floor((diff%86400000)/3600000), 
+              m = Math.floor((diff%3600000)/60000), s = Math.floor((diff%60000)/1000);
+        el.innerHTML = `${d}<span class="unit">天</span> ${h}<span class="unit">时</span> ${m}<span class="unit">分</span> ${s}<span class="unit">秒</span>`;
+        el.classList.toggle('timer-expired', expired);
+    });
+}
+
 function renderTimers() {
     const list = document.getElementById('timer-list');
     if (!list || !timerPageVisible) return;
     let items = data.timers;
     if (currentTimerFilter !== 'all') items = items.filter(t => t.direction === currentTimerFilter);
-    if (items.length === 0) { list.innerHTML = '<div class="empty-tip">暂无计时器</div>'; return; }
+    if (items.length === 0) { 
+        list.innerHTML = '<div class="empty-tip">暂无计时器</div>'; 
+        return; 
+    }
+    
+    // 只在"列表结构变化"时重建DOM（比如增删或切换筛选）
     list.innerHTML = items.map(t => {
         const target = new Date(t.date).getTime(); const now = Date.now();
         let diff = t.direction === 'countdown' ? target - now : now - target;
         const expired = diff <= 0; if (expired && t.direction === 'countdown') diff = 0;
-        const d = Math.floor(diff/86400000), h = Math.floor((diff%86400000)/3600000), m = Math.floor((diff%3600000)/60000), s = Math.floor((diff%60000)/1000);
-        return `<div class="timer-item" style="border-left:3px solid ${t.color}">
+        const d = Math.floor(diff/86400000), h = Math.floor((diff%86400000)/3600000), 
+              m = Math.floor((diff%3600000)/60000), s = Math.floor((diff%60000)/1000);
+        return `<div class="timer-item" data-id="${t.id}" style="border-left:3px solid ${t.color}">
             <span class="timer-del" onclick="delTimer('${t.id}')">✕</span>
             <span class="timer-tag ${t.direction}">${t.direction==='countdown'?'倒计时':'正向'}</span>
             <h3>${t.title}</h3>
             <div class="timer-display ${expired?'timer-expired':''}">${d}<span class="unit">天</span> ${h}<span class="unit">时</span> ${m}<span class="unit">分</span> ${s}<span class="unit">秒</span></div>
-            <div style="font-size:12px;color:var(--text-dim);margin-top:4px">${fmtDate(t.date)}</div></div>`;
+            <div style="font-size:12px;color:var(--text-dim);margin-top:4px">${t.direction==='countdown' ? '目标：' + fmtDate(t.date) : '开始：' + fmtDate(t.date)}</div>
+        </div>`;
     }).join('');
 }
-function addTimer() {
-    const title = document.getElementById('timer-input').value.trim(); const date = document.getElementById('timer-date').value;
-    if (!title || !date) return;
-    data.timers.push({ id: uid(), title, date, direction: document.getElementById('timer-direction').value, color: document.getElementById('timer-color').value });
-    document.getElementById('timer-input').value = ''; document.getElementById('timer-date').value = '';
-    saveData(); renderTimers();
+
+// 启动/停止数字刷新（每秒只改数字，不重建DOM）
+function startTimerRefresh() {
+    if (timerRefreshTimer) clearInterval(timerRefreshTimer);
+    timerRefreshTimer = setInterval(updateTimerNumbers, 1000);
 }
-function delTimer(id) { data.timers = data.timers.filter(t => t.id !== id); saveData(); renderTimers(); }
+function stopTimerRefresh() {
+    if (timerRefreshTimer) { clearInterval(timerRefreshTimer); timerRefreshTimer = null; }
+}
+
+function addTimer() {
+    const title = document.getElementById('timer-input').value.trim();
+    const hours = document.getElementById('timer-hours').value;
+    const minutes = document.getElementById('timer-minutes').value;
+    const direction = document.getElementById('timer-direction').value;
+    
+    if (!title) { alert('请填写标题'); return; }
+    if (!hours && !minutes) { alert('请填写时长'); return; }
+    
+    let date;
+    if (direction === 'countdown') {
+        // 倒计时：从现在开始往后加 hours/minutes
+        date = calcTimerDate(hours, minutes);
+    } else {
+        // 正向计时：开始时间就是现在
+        date = new Date().toISOString();
+    }
+    
+    data.timers.push({ 
+        id: uid(), 
+        title, 
+        date, 
+        direction, 
+        color: document.getElementById('timer-color').value,
+        hours: parseInt(hours) || 0,
+        minutes: parseInt(minutes) || 0
+    });
+    
+    document.getElementById('timer-input').value = '';
+    document.getElementById('timer-hours').value = '';
+    document.getElementById('timer-minutes').value = '';
+    saveData(); 
+    renderTimers();
+    startTimerRefresh(); // 新增计时器后确保刷新启动
+}
+
+function delTimer(id) { 
+    data.timers = data.timers.filter(t => t.id !== id); 
+    saveData(); 
+    renderTimers(); 
+}
 
 // ====== Goals ======
 function renderGoals() {
@@ -1244,7 +1323,12 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
         document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
         document.getElementById('page-' + btn.dataset.page).classList.remove('hidden');
         timerPageVisible = (btn.dataset.page === 'timers');
-        if (timerPageVisible) renderTimers();
+if (timerPageVisible) {
+    renderTimers();
+    startTimerRefresh(); // 进入计时页面时启动数字刷新
+} else {
+    stopTimerRefresh(); // 离开计时页面时停止，节省性能
+}
         if (btn.dataset.page === 'stats') {
     renderStats();
     renderStatsDetail(currentStatsDetailType); // 保持详情展开状态
@@ -1308,4 +1392,3 @@ document.getElementById('vault-delete-btn').addEventListener('click', () => { da
 
 // ====== Init ======
 checkAuth();
-setInterval(() => { renderTimers(); }, 1000);
