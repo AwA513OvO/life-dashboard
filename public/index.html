@@ -120,12 +120,16 @@
             </div>
             <div class="list" id="timer-list"></div>
             <div class="add-bar">
-                <input type="text" id="timer-input" placeholder="标题（如：考试）" />
-                <div class="date-input-wrap"><label>时间</label><input type="datetime-local" id="timer-date" /></div>
-                <select id="timer-direction"><option value="countdown">倒计时</option><option value="countup">正向</option></select>
-                <input type="color" id="timer-color" value="#6366f1" />
-                <button id="timer-add-btn">+</button>
-            </div>
+    <input type="text" id="timer-input" placeholder="标题（如：考试）" />
+    <input type="number" id="timer-hours" placeholder="时" min="0" style="width:60px" />
+    <input type="number" id="timer-minutes" placeholder="分" min="0" max="59" style="width:60px" />
+    <select id="timer-direction">
+        <option value="countdown">倒计时</option>
+        <option value="countup">正向</option>
+    </select>
+    <input type="color" id="timer-color" value="#6366f1" />
+    <button id="timer-add-btn">+</button>
+</div>
         </div>
 
         <!-- 目标 + 倒数日 -->
