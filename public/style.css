@@ -56,7 +56,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
 /* Main App */
 #app { max-width: 600px; margin: 0 auto; padding-bottom: 70px; min-height: 100vh; }
-.page { padding: 16px; display: flex; flex-direction: column; min-height: calc(100vh - 110px); }
+.page { padding: 16px; display: flex; flex-direction: column; height: calc(100vh - 110px); min-height: calc(100vh - 110px); min-width: 0; }
+.sub-content { display: flex; flex-direction: column; flex: 1; min-height: 0; min-width: 0; }
 .hidden { display: none !important; }
 
 /* Top Bar */
@@ -83,7 +84,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 .filter-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
 /* List */
-.list { flex: 1; overflow-y: auto; margin-bottom: 8px; }
+.list { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin-bottom: 8px; -webkit-overflow-scrolling: touch; }
 .empty-tip { text-align: center; color: var(--text-dim); padding: 40px 0; font-size: 14px; }
 
 /* Todo Items */
@@ -106,6 +107,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
 /* Add Bar */
 .add-bar { display: flex; gap: 8px; padding: 8px 0; flex-wrap: wrap; }
+/* 新增内容固定在对应列表上方；下面的 list 单独滚动，添加区不会随列表被顶走。 */
+.add-bar-fixed-top { flex: 0 0 auto; position: relative; z-index: 5; background: var(--bg); padding-top: 4px; padding-bottom: 12px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
 .add-bar input, .add-bar select { background: var(--card-light); border: 1px solid var(--border); border-radius: 8px; padding: 10px; color: var(--text); font-size: 14px; outline: none; }
 .add-bar input { flex: 1; min-width: 120px; }
 .add-bar select { min-width: 60px; }

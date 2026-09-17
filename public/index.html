@@ -101,13 +101,13 @@
                 <button class="filter-tab" data-filter="active">待完成</button>
                 <button class="filter-tab" data-filter="done">已完成</button>
             </div>
-            <div class="list" id="todo-list"></div>
-            <div class="add-bar">
+            <div class="add-bar add-bar-fixed-top">
                 <input type="text" id="todo-input" placeholder="添加待办事项..." />
                 <select id="todo-category"><option>工作</option><option>生活</option><option>学习</option><option>其他</option></select>
                 <select id="todo-priority"><option value="low">低</option><option value="mid" selected>中</option><option value="high">高</option></select>
                 <button id="todo-add-btn">+</button>
             </div>
+            <div class="list" id="todo-list"></div>
         </div>
 
         <!-- 计时器 -->
@@ -118,8 +118,7 @@
                 <button class="filter-tab" data-filter="countdown">倒计时</button>
                 <button class="filter-tab" data-filter="countup">正向计时</button>
             </div>
-            <div class="list" id="timer-list"></div>
-            <div class="add-bar">
+            <div class="add-bar add-bar-fixed-top">
     <input type="text" id="timer-input" placeholder="标题（如：考试）" />
     <input type="number" id="timer-hours" placeholder="时" min="0" style="width:60px" />
     <input type="number" id="timer-minutes" placeholder="分" min="0" max="59" style="width:60px" />
@@ -130,6 +129,7 @@
     <input type="color" id="timer-color" value="#6366f1" />
     <button id="timer-add-btn">+</button>
 </div>
+            <div class="list" id="timer-list"></div>
         </div>
 
         <!-- 目标 + 倒数日 -->
@@ -139,23 +139,23 @@
                 <button class="sub-nav-btn" data-sub="countdowns"><span class="sub-nav-icon">📅</span><span>倒数日</span></button>
             </div>
             <div class="sub-content" id="sub-goals">
-                <div class="list" id="goal-list"></div>
-                <div class="add-bar">
+                <div class="add-bar add-bar-fixed-top">
                     <input type="text" id="goal-input" placeholder="目标标题" />
                     <input type="text" id="goal-desc" placeholder="描述（可选）" />
                     <div class="date-input-wrap"><label>截止</label><input type="date" id="goal-deadline" /></div>
                     <button id="goal-add-btn">+</button>
                 </div>
+                <div class="list" id="goal-list"></div>
             </div>
             <div class="sub-content hidden" id="sub-countdowns">
-                <div class="list" id="countdown-list"></div>
-                <div class="add-bar">
+                <div class="add-bar add-bar-fixed-top">
                     <input type="text" id="cd-input" placeholder="事件名称" />
                     <div class="date-input-wrap"><label>日期</label><input type="date" id="cd-date" /></div>
                     <select id="cd-mode"><option value="until">距今还有</option><option value="since">已经过了</option></select>
                     <input type="text" id="cd-emoji" placeholder="emoji" value="📅" style="width:50px" />
                     <button id="cd-add-btn">+</button>
                 </div>
+                <div class="list" id="countdown-list"></div>
             </div>
         </div>
 
@@ -183,9 +183,8 @@
                 <button class="sub-nav-btn" data-sub="vault"><span class="sub-nav-icon">🔒</span><span>保密柜</span></button>
             </div>
             <div class="sub-content" id="sub-diary">
-                <div class="list" id="diary-list"></div>
-                <div class="add-bar">
-                    <input type="text" id="diary-title" placeholder="标题" />
+                <div class="add-bar add-bar-fixed-top">
+                    <input type="text" id="diary-title" value="请输入标题" placeholder="请输入标题" />
                     <div class="date-input-wrap"><label>日期</label><input type="date" id="diary-date" /></div>
                     <select id="diary-mood">
                         <option>😊</option><option>😄</option><option>😢</option><option>😡</option>
@@ -194,6 +193,7 @@
                     </select>
                     <button id="diary-add-btn">+</button>
                 </div>
+                <div class="list" id="diary-list"></div>
             </div>
             <div class="sub-content hidden" id="sub-vault">
                 <div id="vault-setup" class="vault-section hidden">
@@ -218,12 +218,12 @@
                         <button class="vault-tab" data-vault-filter="todo">待办</button>
                         <button class="vault-tab" data-vault-filter="note">便签</button>
                     </div>
-                    <div class="list" id="vault-list"></div>
-                    <div class="add-bar">
+                    <div class="add-bar add-bar-fixed-top">
                         <select id="vault-type"><option value="note">便签</option><option value="diary">日记</option><option value="todo">待办</option></select>
                         <input type="text" id="vault-title" placeholder="标题" />
                         <button id="vault-add-btn">+ 添加</button>
                     </div>
+                    <div class="list" id="vault-list"></div>
                     <button id="vault-lock-btn" class="vault-lockback-btn">🔒 重新锁定</button>
                 </div>
             </div>

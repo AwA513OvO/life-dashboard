@@ -622,11 +622,32 @@ function delCountdown(id) { data.countdowns = data.countdowns.filter(c => c.id !
 // ====== Stats ======
 function getStatsRangeStart(range) {
     const now = new Date(); const start = new Date(now);
-    if (range === 'day') start.setHours(0,0,0,0);
-    else if (range === 'week') { start.setDate(now.getDate()-now.getDay()); start.setHours(0,0,0,0); }
-    else if (range === 'month') { start.setDate(1); start.setHours(0,0,0,0); }
-    else if (range === 'year') { start.setMonth(0,1); start.setHours(0,0,0,0); }
+    if (range === 'day') {
+        start.setHours(0,0,0,0);
+    } else if (range === 'week') {
+        // 统计周按中文常用习惯：周一 00:00 开始，到当前时刻为止。
+        const day = now.getDay(); // 周日=0，周一=1...
+        const daysFromMonday = day === 0 ? 6 : day - 1;
+        start.setDate(now.getDate() - daysFromMonday);
+        start.setHours(0,0,0,0);
+    } else if (range === 'month') {
+        start.setDate(1); start.setHours(0,0,0,0);
+    } else if (range === 'year') {
+        start.setMonth(0,1); start.setHours(0,0,0,0);
+    }
     return start;
+}
+
+function getStatsRangeHint(range) {
+    const now = new Date();
+    if (range === 'day') return '今天 00:00 至现在';
+    if (range === 'week') {
+        const start = getStatsRangeStart('week');
+        return `本周一 ${start.getMonth()+1}月${start.getDate()}日 00:00 至现在`;
+    }
+    if (range === 'month') return `本月1日 ${now.getMonth()+1}月1日 00:00 至现在`;
+    if (range === 'year') return `今年1月1日 ${now.getFullYear()}年1月1日 00:00 至现在`;
+    return '';
 }
 
 function getStatsGroupKey(dateStr, range) {
@@ -660,7 +681,13 @@ function formatStatsTime(timeStr, range, isDateOnly) {
 
 function sortGroupKeys(keys, range) {
     if (range === 'week') {
-        return keys.sort((a,b) => WEEKDAYS.indexOf(a.split(' ')[0]) - WEEKDAYS.indexOf(b.split(' ')[0]));
+        return keys.sort((a,b) => {
+            const ia = WEEKDAYS.indexOf(a.split(' ')[0]);
+            const ib = WEEKDAYS.indexOf(b.split(' ')[0]);
+            const ma = (ia + 6) % 7; // 周一=0，周日=6
+            const mb = (ib + 6) % 7;
+            return ma - mb;
+        });
     }
     if (range === 'month' || range === 'year') {
         return keys.sort((a,b) => {
@@ -699,15 +726,20 @@ function getCompletedTodos(startMs) {
     return list || [];
 }
 
-function getPendingTodos() {
+function getPendingTodos(startMs) {
     if (!data || !Array.isArray(data.todos)) return [];
-    const list = data.todos.filter(t => t && !t.done);
+    // 待完成也按统计周期筛选，避免“本周完成 + 全部历史未完成”混在一起导致总量和完成率失真。
+    const list = data.todos.filter(t => {
+        if (!t || t.done) return false;
+        const time = t.createdAt;
+        return time && new Date(time) >= startMs;
+    });
     return list || [];
 }
 function getStatsTodos(type, startMs) {
     if (type === 'done') return getCompletedTodos(startMs);
-    if (type === 'pending') return getPendingTodos();
-    return getCompletedTodos(startMs).concat(getPendingTodos());
+    if (type === 'pending') return getPendingTodos(startMs);
+    return getCompletedTodos(startMs).concat(getPendingTodos(startMs));
 }
 
 function renderStatsDetail(type) {
@@ -803,8 +835,10 @@ function renderStats() {
 
     const start = getStatsRangeStart(currentStatsRange); const startMs = start.getTime();
     const completedInRange = getCompletedTodos(startMs);
-    const pendingTodos = getPendingTodos();
+    const pendingTodos = getPendingTodos(startMs);
     const totalTodos = (completedInRange || []).concat(pendingTodos || []);
+    const hintEl = document.querySelector('#page-stats .stats-hint');
+    if (hintEl) hintEl.textContent = `统计范围：${getStatsRangeHint(currentStatsRange)}；待完成仅统计本期新建任务`;
     const diariesInRange = data.diaries.filter(d => new Date(d.date) >= startMs);
     const goalsDone = data.goals.filter(g => g.progress >= 100).length;
     const completionRateNum = totalTodos.length ? Math.round(completedInRange.length / totalTodos.length * 100) : 0;
@@ -870,7 +904,7 @@ function renderDiaries() {
         '<span class="diary-month-count">' + groups[key].length + ' 篇</span></div>' +
         '<div class="diary-month-list">' +
         groups[key].map(d => `
-        <div class="diary-item" onclick="editDiary('${d.id}')">
+        <div class="diary-item" onclick="editDiary('${d.id}')" ontouchstart="startDiaryLongPress('${d.id}')" ontouchend="cancelDiaryLongPress()" ontouchmove="cancelDiaryLongPress()" onmousedown="startDiaryLongPress('${d.id}')" onmouseup="cancelDiaryLongPress()" onmouseleave="cancelDiaryLongPress()">
             <h3>${d.emoji||''} ${d.title}<button class="diary-del-btn" style="float:right;background:none;border:none;cursor:pointer;font-size:16px;opacity:.55;padding:0 4px;" onclick="event.stopPropagation(); deleteDiary('${d.id}')" title="删除日记">🗑</button></h3>
             <div class="diary-meta"><span>${relTime(d.date)}</span>${d.audio?'<span>🎤</span>':''}</div>
             ${d.image ? `<img src="${d.image}" class="diary-thumb" loading="lazy" />` : ''}
@@ -893,13 +927,26 @@ async function deleteDiary(id) {
     await saveData();
     renderDiaries();
 }
+let diaryLongPressTimer = null;
+function startDiaryLongPress(id) {
+    cancelDiaryLongPress();
+    diaryLongPressTimer = setTimeout(() => { editDiary(id); }, 650);
+}
+function cancelDiaryLongPress() {
+    if (diaryLongPressTimer) { clearTimeout(diaryLongPressTimer); diaryLongPressTimer = null; }
+}
+
 function addDiary() {
-    const title = document.getElementById('diary-title').value.trim();
-    if (!title) return;
+    // 点击“+”直接创建一篇日记并进入编辑，不再要求先填写标题。
+    const input = document.getElementById('diary-title');
+    const title = input.value.trim() || '请输入标题';
     const diary = { id: uid(), title, date: document.getElementById('diary-date').value || new Date().toISOString().slice(0,10), emoji: document.getElementById('diary-mood').value, content: '' };
     data.diaries.push(diary);
-    document.getElementById('diary-title').value = '';
-    saveData(); renderDiaries(); editDiary(diary.id);
+    // 保持下一次添加时默认仍为“请输入标题”。
+    input.value = '请输入标题';
+    saveData();
+    renderDiaries();
+    editDiary(diary.id);
 }
 function editDiary(id) {
     const d = data.diaries.find(x => x.id === id); if (!d) return;
