@@ -464,7 +464,7 @@ function renderTodos() {
     list.innerHTML = items.length === 0 ? '<div class="empty-tip">暂无待办事项</div>' : items.map((t, idx) => {
         const overdue = selectedTodoDate === today && isTodoOverdue(t, today);
         return `<div class="todo-item ${t.done?'done':''} ${t.priority}" data-id="${t.id}"
-            ontouchstart="event.preventDefault(); startLongPress('${t.id}')" ontouchend="cancelLongPress()" 
+            ontouchstart="startLongPress('${t.id}')" ontouchend="cancelLongPress()" 
 onmousedown="startLongPress('${t.id}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()"
 oncontextmenu="return false">
             <div class="todo-check ${t.done?'done':''}" onclick="event.stopPropagation(); toggleTodo('${t.id}')">${t.done?'✓':''}</div>
