@@ -719,132 +719,252 @@ function addAccount() {
 function deleteAccount(id) { data.accounts=data.accounts.filter(a=>a.id!==id); saveData(); renderAccounts(); renderStats(); }
 
 // ====== Stats ======
-function dateKeyInRange(key, startKey, endKey) { return key >= startKey && key <= endKey; }
-function getStatsRangeBounds(range) {
-    const today=localDateKey(); const d=parseDateKey(today);
-    let start=d;
-    if(range==='week'){ const day=d.getDay(); start=parseDateKey(addDaysToKey(today, -(day===0?6:day-1))); }
-    else if(range==='month') start=new Date(d.getFullYear(),d.getMonth(),1);
-    else if(range==='year') start=new Date(d.getFullYear(),0,1);
-    return { startKey:localDateKey(start), endKey:today };
-}
-function getStatsRangeStart(range) { return parseDateKey(getStatsRangeBounds(range).startKey); }
-function getStatsRangeHint(range) { const b=getStatsRangeBounds(range); return `${formatDateKey(b.startKey,true)} 至 ${formatDateKey(b.endKey,true)}`; }
-function getStatsGroupKey(dateStr, range) {
-    const d=/^\d{4}-\d{2}-\d{2}$/.test(String(dateStr)) ? parseDateKey(dateStr) : new Date(dateStr); if(range==='day')return null;
-    if(range==='week')return weekdayName(d)+' '+(d.getMonth()+1)+'/'+d.getDate();
-    if(range==='month')return '第'+Math.ceil(d.getDate()/7)+'周';
-    if(range==='year')return (d.getMonth()+1)+'月'; return null;
-}
-function formatStatsTime(timeStr, range, isDateOnly) {
-    const d=isDateOnly ? parseDateKey(timeStr) : new Date(timeStr); if(isDateOnly){ if(range==='day')return '当天'; if(range==='week')return weekdayName(d); if(range==='month')return (d.getMonth()+1)+'/'+d.getDate(); if(range==='year')return (d.getMonth()+1)+'月'+d.getDate()+'日'; return ''; }
-    const hh=String(d.getHours()).padStart(2,'0'), mm=String(d.getMinutes()).padStart(2,'0');
-    if(range==='day')return hh+':'+mm; if(range==='week')return weekdayName(d)+' '+hh+':'+mm; if(range==='month')return (d.getMonth()+1)+'/'+d.getDate()+' '+hh+':'+mm; return (d.getMonth()+1)+'月'+d.getDate()+'日';
-}
-function getPlanStats(bounds=getStatsRangeBounds(currentStatsRange)) {
-    const planned=data.todos.filter(t=>!t.archived && dateKeyInRange(todoPlannedDate(t),bounds.startKey,bounds.endKey));
-    const onTime=planned.filter(t=>t.done && localDateKey(new Date(t.completedAt||t.createdAt))<=todoPlannedDate(t));
-    const overdueCompleted=planned.filter(t=>t.done && localDateKey(new Date(t.completedAt||t.createdAt))>todoPlannedDate(t));
-    const unfinished=planned.filter(t=>!t.done);
-    return {planned,onTime,overdueCompleted,unfinished};
-}
-function getActualCompleted(bounds=getStatsRangeBounds(currentStatsRange)) {
-    return data.todos.filter(t=>!t.archived && t.done && t.completedAt && dateKeyInRange(localDateKey(new Date(t.completedAt)),bounds.startKey,bounds.endKey));
-}
-function getStatsTodos(type) {
-    const bounds=getStatsRangeBounds(currentStatsRange), plan=getPlanStats(bounds);
-    if(type==='done')return getActualCompleted(bounds);
-    if(type==='pending')return plan.unfinished;
-    return plan.planned;
-}
-function renderStatsRecord(r, range) {
-    let badge=''; if(r.status==='done')badge='<span class="stats-record-badge done">✓</span>'; else if(r.status==='pending')badge='<span class="stats-record-badge pending">○</span>'; else if(r.emoji)badge='<span class="stats-record-badge">'+r.emoji+'</span>';
-    return '<div class="stats-record">'+badge+'<span class="stats-record-content">'+r.content+'</span><span class="stats-record-time">'+formatStatsTime(r.time,range,r.isDateOnly)+'</span></div>';
-}
-function toggleStatsGroup(headerEl) { const body=headerEl.nextElementSibling, arrow=headerEl.querySelector('.stats-detail-arrow'); body.classList.toggle('hidden'); arrow.textContent=body.classList.contains('hidden')?'▶':'▼'; }
-function renderStatsDetail(type) {
-    const detailEl=document.getElementById('stats-details'); if(!detailEl)return;
-    if(currentStatsDetailType===type){ currentStatsDetailType=null; detailEl.classList.add('hidden'); detailEl.innerHTML=''; return; }
-    currentStatsDetailType=type; detailEl.classList.remove('hidden');
-    const bounds=getStatsRangeBounds(currentStatsRange); let records=[];
-    if(type==='all'||type==='pending'||type==='done'){
-        records=getStatsTodos(type).map(t=>({content:t.text+(isTodoOverdue(t,localDateKey())?' · 逾期':''),time:t.done&&t.completedAt?t.completedAt:t.createdAt,status:t.done?'done':'pending'}));
-    } else if(type==='diaries'){
-        records=data.diaries.filter(d=>dateKeyInRange(localDateKey(new Date(d.date)),bounds.startKey,bounds.endKey)).map(d=>({content:d.title+(d.content?' · '+d.content.slice(0,40):''),time:d.date,emoji:d.emoji,isDateOnly:true}));
-    } else if(type==='account-all'){
-        records=(data.accounts||[]).filter(a=>dateKeyInRange(a.date,bounds.startKey,bounds.endKey)).map(a=>({content:`${a.type==='income'?'收入':'支出'} · ${a.category}${a.note?' · '+a.note:''}`,time:a.date,emoji:accountIcon(a.category,a.type),isDateOnly:true}));
+function getStatsRangeStart(range) {
+    const now = new Date(); const start = new Date(now);
+    if (range === 'day') {
+        start.setHours(0,0,0,0);
+    } else if (range === 'week') {
+        // 统计周按中文常用习惯：周一 00:00 开始，到当前时刻为止。
+        const day = now.getDay(); // 周日=0，周一=1...
+        const daysFromMonday = day === 0 ? 6 : day - 1;
+        start.setDate(now.getDate() - daysFromMonday);
+        start.setHours(0,0,0,0);
+    } else if (range === 'month') {
+        start.setDate(1); start.setHours(0,0,0,0);
+    } else if (range === 'year') {
+        start.setMonth(0,1); start.setHours(0,0,0,0);
     }
-    records.sort((a,b)=>new Date(b.time)-new Date(a.time));
-    if(!records.length){detailEl.innerHTML='<div class="empty-tip">暂无记录</div>';return;}
-    if(currentStatsRange==='day'){ detailEl.innerHTML='<div class="stats-detail-list">'+records.map(r=>renderStatsRecord(r,currentStatsRange)).join('')+'</div>'; return; }
-    const groups={}; records.forEach(r=>{const key=getStatsGroupKey(r.time,currentStatsRange)||'其他';(groups[key] ||= []).push(r);});
-    const keys=Object.keys(groups).sort((a,b)=>a.localeCompare(b,'zh-CN',{numeric:true}));
-    detailEl.innerHTML=keys.map(key=>'<div class="stats-detail-group"><div class="stats-detail-group-header" onclick="toggleStatsGroup(this)"><span>'+key+'</span><span class="stats-detail-count">'+groups[key].length+'条</span><span class="stats-detail-arrow">▼</span></div><div class="stats-detail-group-body">'+groups[key].map(r=>renderStatsRecord(r,currentStatsRange)).join('')+'</div></div>').join('');
-}
-function renderPlanTrend() {
-    const el=document.getElementById('stats-plan-trend'); if(!el)return;
-    const bounds=getStatsRangeBounds(currentStatsRange), start=parseDateKey(bounds.startKey), end=parseDateKey(bounds.endKey);
-    let points=[];
-    if(currentStatsRange==='day') { el.innerHTML='<h3>今日计划</h3><div class="empty-tip" style="padding:12px 0">点击上方计划统计卡片查看今日任务</div>'; return; }
-    if(currentStatsRange==='week'){
-        for(let i=0;i<7;i++){const key=addDaysToKey(bounds.startKey,i); if(key>bounds.endKey)break; const arr=data.todos.filter(t=>!t.archived&&todoPlannedDate(t)===key); points.push({key,label:weekdayName(parseDateKey(key)),count:arr.length,done:arr.filter(t=>t.done).length});}
-    } else if(currentStatsRange==='month'){
-        let cursor=start; while(cursor<=end){const weekStart=new Date(cursor); const weekEnd=new Date(cursor); weekEnd.setDate(weekEnd.getDate()+6); if(weekEnd>end)weekEnd.setTime(end.getTime()); const sk=localDateKey(weekStart), ek=localDateKey(weekEnd); const arr=data.todos.filter(t=>!t.archived&&todoPlannedDate(t)>=sk&&todoPlannedDate(t)<=ek); points.push({key:sk,label:(weekStart.getMonth()+1)+'/'+weekStart.getDate(),count:arr.length,done:arr.filter(t=>t.done).length}); cursor=new Date(weekEnd); cursor.setDate(cursor.getDate()+1);}
-    } else {
-        for(let m=0;m<12;m++){const ms=new Date(start.getFullYear(),m,1), me=new Date(start.getFullYear(),m+1,0); if(ms>end)break; const sk=localDateKey(ms), ek=localDateKey(me>end?end:me); const arr=data.todos.filter(t=>!t.archived&&todoPlannedDate(t)>=sk&&todoPlannedDate(t)<=ek); points.push({key:sk,label:(m+1)+'月',count:arr.length,done:arr.filter(t=>t.done).length});}
-    }
-    const max=Math.max(1,...points.map(p=>p.count));
-    const plan=getPlanStats(bounds);
-    el.innerHTML='<h3>计划趋势</h3><div class="stats-plan-summary"><span>按时完成 <b>'+plan.onTime.length+'</b></span><span>逾期完成 <b>'+plan.overdueCompleted.length+'</b></span><span>未完成 <b>'+plan.unfinished.length+'</b></span></div><p class="stats-hint">柱形高度代表计划数量，点击可查看对应区间详情</p><div class="plan-trend-grid">'+points.map(p=>`<div class="plan-trend-item" onclick="renderPlanDayDetail('${p.key}')"><span class="plan-trend-value">${p.count}</span><div class="plan-trend-bar-wrap"><div class="plan-trend-bar" style="height:${Math.max(5,p.count/max*82)}px"></div></div><span class="plan-trend-label">${p.label}</span></div>`).join('')+'</div>';
-}
-function renderPlanDayDetail(key) {
-    const detail=document.getElementById('stats-details'); if(!detail)return;
-    const isSingle=currentStatsRange==='week'; let arr;
-    if(isSingle) arr=data.todos.filter(t=>!t.archived&&todoPlannedDate(t)===key); else {
-        let end;
-        if(currentStatsRange==='month') end=addDaysToKey(key,6);
-        else { const d=parseDateKey(key); end=localDateKey(new Date(d.getFullYear(),d.getMonth()+1,0)); }
-        arr=data.todos.filter(t=>!t.archived&&todoPlannedDate(t)>=key&&todoPlannedDate(t)<=end);
-    }
-    currentStatsDetailType='plan-day'; detail.classList.remove('hidden');
-    if(!arr.length){detail.innerHTML='<div class="empty-tip">该计划区间暂无任务</div>';return;}
-    const done=arr.filter(t=>t.done).length, overdue=arr.filter(t=>t.done&&localDateKey(new Date(t.completedAt||t.createdAt))>todoPlannedDate(t)).length, unfinished=arr.filter(t=>!t.done).length;
-    detail.innerHTML=`<div class="stats-detail-group"><div class="stats-detail-group-header"><span>${formatDateKey(key,true)} 计划详情</span><span class="stats-detail-count">计划 ${arr.length} · 完成 ${done}</span></div><div class="stats-detail-group-body"><div class="stats-record"><span class="stats-record-content">按时完成</span><span class="stats-record-time">${done-overdue}</span></div><div class="stats-record"><span class="stats-record-content">逾期完成</span><span class="stats-record-time">${overdue}</span></div><div class="stats-record"><span class="stats-record-content">未完成</span><span class="stats-record-time">${unfinished}</span></div></div></div><div class="stats-detail-list">${arr.map(t=>`<div class="stats-record"><span class="stats-record-badge ${t.done?'done':'pending'}">${t.done?'✓':'○'}</span><span class="stats-record-content">${t.text}</span><span class="stats-record-time">${t.done?(localDateKey(new Date(t.completedAt))>todoPlannedDate(t)?'逾期完成':'按时'): '未完成'}</span></div>`).join('')}</div>`;
-}
-// 补充 ringChart 函数
-function ringChart(percent, color) {
-    const radius = 30;
-    const circumference = 2 * Math.PI * radius;
-    const offset = circumference - (percent / 100) * circumference;
-    return `
-        <svg width="80" height="80" viewBox="0 0 80 80">
-            <circle cx="40" cy="40" r="${radius}" fill="none" stroke="var(--border)" stroke-width="8"></circle>
-            <circle cx="40" cy="40" r="${radius}" fill="none" stroke="${color}" stroke-width="8"
-                stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"
-                transform="rotate(-90 40 40)" stroke-linecap="round"></circle>
-            <text x="40" y="45" text-anchor="middle" fill="var(--text)" font-size="16" font-weight="bold">${percent}%</text>
-        </svg>
-    `;
-}
-function renderStats() {
-    currentStatsDetailType=null; const detailEl=document.getElementById('stats-details'); if(detailEl){detailEl.classList.add('hidden');detailEl.innerHTML='';}
-    const bounds=getStatsRangeBounds(currentStatsRange), plan=getPlanStats(bounds), actual=getActualCompleted(bounds);
-    const total=plan.planned.length, completed=plan.onTime.length+plan.overdueCompleted.length, unfinished=plan.unfinished.length;
-    const rate=total?Math.round(completed/total*100):0;
-    const hint=document.querySelector('#page-stats .stats-hint'); if(hint)hint.textContent=`统计范围：${getStatsRangeHint(currentStatsRange)}；计划统计按计划日期，实际活动按完成日期`;
-    document.getElementById('stats-cards').innerHTML=`<div class="stat-card clickable" onclick="renderStatsDetail('all')"><div class="num">${total}</div><div class="label">计划任务</div></div><div class="stat-card success clickable" onclick="renderStatsDetail('done')"><div class="num">${actual.length}</div><div class="label">实际完成</div></div><div class="stat-card warning clickable" onclick="renderStatsDetail('pending')"><div class="num">${unfinished}</div><div class="label">未完成</div></div><div class="stat-card ring-card"><div class="ring-wrap">${ringChart(rate,'var(--primary)')}</div><div class="label">计划完成率</div></div>`;
-    const cats={}; plan.planned.forEach(t=>cats[t.category]=(cats[t.category]||0)+1); const catColors={'工作':'#6366f1','生活':'#22c55e','学习':'#f59e0b','其他':'#888'};
-    document.getElementById('stats-category').innerHTML='<h3>任务分类统计</h3>'+(Object.keys(cats).length?Object.entries(cats).map(([name,count])=>`<div class="stat-row"><span class="name">${name}</span><div class="bar"><div class="bar-fill" style="width:${total?count/total*100:0}%;background:${catColors[name]||'#888'}"></div></div><span class="val">${count}</span></div>`).join(''):'<div class="empty-tip">暂无数据</div>');
-    const pris={high:0,mid:0,low:0}; plan.planned.forEach(t=>pris[t.priority]++); document.getElementById('stats-priority').innerHTML=`<h3>优先级分布</h3><div class="stat-row"><span class="name">高</span><div class="bar"><div class="bar-fill" style="width:${total?pris.high/total*100:0}%;background:var(--danger)"></div></div><span class="val">${pris.high}</span></div><div class="stat-row"><span class="name">中</span><div class="bar"><div class="bar-fill" style="width:${total?pris.mid/total*100:0}%;background:var(--warning)"></div></div><span class="val">${pris.mid}</span></div><div class="stat-row"><span class="name">低</span><div class="bar"><div class="bar-fill" style="width:${total?pris.low/total*100:0}%;background:var(--success)"></div></div><span class="val">${pris.low}</span></div>`;
-    renderPlanTrend();
-    const goalsDone=data.goals.filter(g=>g.progress>=100).length, avgProgress=data.goals.length?Math.round(data.goals.reduce((s,g)=>s+g.progress,0)/data.goals.length):0;
-    document.getElementById('stats-goals').innerHTML=`<h3>目标概览</h3><div class="stat-row"><span class="name">已完成</span><div class="bar"><div class="bar-fill" style="width:${data.goals.length?goalsDone/data.goals.length*100:0}%;background:var(--success)"></div></div><span class="val">${goalsDone}</span></div><div class="stat-row"><span class="name">总数</span><div class="bar"><div class="bar-fill" style="width:100%;background:var(--border)"></div></div><span class="val">${data.goals.length}</span></div><div class="stat-row"><span class="name">平均进度</span><div class="bar"><div class="bar-fill" style="width:${avgProgress}%;background:var(--primary)"></div></div><span class="val">${avgProgress}%</span></div>`;
-    const diariesInRange=data.diaries.filter(d=>dateKeyInRange(localDateKey(new Date(d.date)),bounds.startKey,bounds.endKey));
-    document.getElementById('stats-diaries').innerHTML=`<h3>日记统计</h3><div class="stat-row clickable" onclick="renderStatsDetail('diaries')"><span class="name">已写</span><div class="bar"><div class="bar-fill" style="width:100%;background:var(--primary-light)"></div></div><span class="val">${diariesInRange.length} ▸</span></div>`;
-    const acc=(data.accounts||[]).filter(a=>dateKeyInRange(a.date,bounds.startKey,bounds.endKey)); const inc=acc.filter(a=>a.type==='income').reduce((s,a)=>s+Number(a.amount||0),0), exp=acc.filter(a=>a.type==='expense').reduce((s,a)=>s+Number(a.amount||0),0); const acats={}; acc.filter(a=>a.type==='expense').forEach(a=>acats[a.category]=(acats[a.category]||0)+Number(a.amount||0)); const maxExp=Math.max(1,...Object.values(acats));
-    document.getElementById('stats-accounts').innerHTML=`<h3>记账统计</h3><div class="account-summary"><div class="account-summary-card"><div class="num">¥${inc.toFixed(2)}</div><div class="label">收入</div></div><div class="account-summary-card"><div class="num">¥${exp.toFixed(2)}</div><div class="label">支出</div></div><div class="account-summary-card"><div class="num">¥${(inc-exp).toFixed(2)}</div><div class="label">结余</div></div></div>${Object.keys(acats).length?'<div style="margin-top:10px">'+Object.entries(acats).sort((a,b)=>b[1]-a[1]).map(([name,val])=>`<div class="account-category-row"><span class="name">${name}</span><div class="bar"><div class="bar-fill" style="width:${val/maxExp*100}%"></div></div><span class="val">¥${val.toFixed(2)}</span></div>`).join('')+'</div>':'<div class="empty-tip" style="padding:12px 0">暂无支出分类</div>'}<div class="stat-row clickable" onclick="renderStatsDetail('account-all')" style="margin-top:10px"><span class="name">账单明细</span><div class="bar"><div class="bar-fill" style="width:100%;background:var(--primary-light)"></div></div><span class="val">${acc.length} 条 ▸</span></div>`;
+    return start;
 }
 
+function getStatsRangeHint(range) {
+    const now = new Date();
+    if (range === 'day') return '今天 00:00 至现在';
+    if (range === 'week') {
+        const start = getStatsRangeStart('week');
+        return `本周一 ${start.getMonth()+1}月${start.getDate()}日 00:00 至现在`;
+    }
+    if (range === 'month') return `本月1日 ${now.getMonth()+1}月1日 00:00 至现在`;
+    if (range === 'year') return `今年1月1日 ${now.getFullYear()}年1月1日 00:00 至现在`;
+    return '';
+}
+
+function getStatsGroupKey(dateStr, range) {
+    const d = new Date(dateStr);
+    if (range === 'day') return null;
+    if (range === 'week') {
+        return weekdayName(d) + ' ' + (d.getMonth()+1) + '/' + d.getDate();
+    }
+    if (range === 'month') return '第' + Math.ceil(d.getDate() / 7) + '周';
+    if (range === 'year') return (d.getMonth()+1) + '月';
+    return null;
+}
+
+function formatStatsTime(timeStr, range, isDateOnly) {
+    const d = new Date(timeStr);
+    if (isDateOnly) {
+        if (range === 'day') return '当天';
+        if (range === 'week') { return weekdayName(d); }
+        if (range === 'month') return (d.getMonth()+1) + '/' + d.getDate();
+        if (range === 'year') return (d.getMonth()+1) + '月' + d.getDate() + '日';
+        return '';
+    }
+    const hh = d.getHours().toString().padStart(2,'0');
+    const mm = d.getMinutes().toString().padStart(2,'0');
+    if (range === 'day') return hh + ':' + mm;
+    if (range === 'week') { return weekdayName(d) + ' ' + hh + ':' + mm; }
+    if (range === 'month') return (d.getMonth()+1) + '/' + d.getDate() + ' ' + hh + ':' + mm;
+    if (range === 'year') return (d.getMonth()+1) + '月' + d.getDate() + '日';
+    return '';
+}
+
+function sortGroupKeys(keys, range) {
+    if (range === 'week') {
+        return keys.sort((a,b) => {
+            const ia = WEEKDAYS.indexOf(a.split(' ')[0]);
+            const ib = WEEKDAYS.indexOf(b.split(' ')[0]);
+            const ma = (ia + 6) % 7; // 周一=0，周日=6
+            const mb = (ib + 6) % 7;
+            return ma - mb;
+        });
+    }
+    if (range === 'month' || range === 'year') {
+        return keys.sort((a,b) => {
+            const na = a.match(/\d+/), nb = b.match(/\d+/);
+            return (na?parseInt(na[0]):0) - (nb?parseInt(nb[0]):0);
+        });
+    }
+    return keys;
+}
+
+function renderStatsRecord(r, range) {
+    let badge = '';
+    if (r.status === 'done') badge = '<span class="stats-record-badge done">✓</span>';
+    else if (r.status === 'pending') badge = '<span class="stats-record-badge pending">○</span>';
+    else if (r.emoji) badge = '<span class="stats-record-badge">' + r.emoji + '</span>';
+    return '<div class="stats-record">' + badge +
+        '<span class="stats-record-content">' + r.content + '</span>' +
+        '<span class="stats-record-time">' + formatStatsTime(r.time, range, r.isDateOnly) + '</span>' +
+        '</div>';
+}
+
+function toggleStatsGroup(headerEl) {
+    const body = headerEl.nextElementSibling;
+    const arrow = headerEl.querySelector('.stats-detail-arrow');
+    body.classList.toggle('hidden');
+    arrow.textContent = body.classList.contains('hidden') ? '▶' : '▼';
+}
+
+function getCompletedTodos(startMs) {
+    if (!data || !Array.isArray(data.todos)) return [];
+    const list = data.todos.filter(t => {
+        if (!t || !t.done) return false;
+        const time = t.completedAt || t.createdAt;
+        return time && new Date(time) >= startMs;
+    });
+    return list || [];
+}
+
+function getPendingTodos(startMs) {
+    if (!data || !Array.isArray(data.todos)) return [];
+    // 待完成也按统计周期筛选，避免“本周完成 + 全部历史未完成”混在一起导致总量和完成率失真。
+    const list = data.todos.filter(t => {
+        if (!t || t.done) return false;
+        const time = t.createdAt;
+        return time && new Date(time) >= startMs;
+    });
+    return list || [];
+}
+function getStatsTodos(type, startMs) {
+    if (type === 'done') return getCompletedTodos(startMs);
+    if (type === 'pending') return getPendingTodos(startMs);
+    return getCompletedTodos(startMs).concat(getPendingTodos(startMs));
+}
+
+function renderStatsDetail(type) {
+    const detailEl = document.getElementById('stats-details');
+    if (currentStatsDetailType === type) {
+        currentStatsDetailType = null;
+        detailEl.classList.add('hidden');
+        detailEl.innerHTML = '';
+        return;
+    }
+    currentStatsDetailType = type;
+    detailEl.classList.remove('hidden');
+
+    const start = getStatsRangeStart(currentStatsRange); const startMs = start.getTime();
+    let records = [];
+
+    if (type === 'all' || type === 'done' || type === 'pending') {
+        const todos = getStatsTodos(type, startMs);
+        records = todos.map(t => ({
+            content: t.text,
+            time: t.done && t.completedAt ? t.completedAt : t.createdAt,
+            status: t.done ? 'done' : 'pending'
+        }));
+    } else if (type === 'diaries') {
+        records = data.diaries.filter(d => new Date(d.date) >= startMs).map(d => ({
+            content: d.title + (d.content ? ' · ' + d.content.slice(0,40) : ''),
+            time: d.date,
+            emoji: d.emoji,
+            isDateOnly: true
+        }));
+    }
+
+    records.sort((a,b) => new Date(b.time) - new Date(a.time));
+
+    if (records.length === 0) {
+        detailEl.innerHTML = '<div class="empty-tip">暂无记录</div>';
+        return;
+    }
+
+    if (currentStatsRange === 'day') {
+        detailEl.innerHTML = '<div class="stats-detail-list">' + records.map(r => renderStatsRecord(r, currentStatsRange)).join('') + '</div>';
+    } else {
+        const groups = {};
+        records.forEach(r => {
+            const key = getStatsGroupKey(r.time, currentStatsRange) || '其他';
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(r);
+        });
+        const sortedKeys = sortGroupKeys(Object.keys(groups), currentStatsRange);
+        detailEl.innerHTML = sortedKeys.map(key =>
+            '<div class="stats-detail-group">' +
+            '<div class="stats-detail-group-header" onclick="toggleStatsGroup(this)">' +
+            '<span>' + key + '</span>' +
+            '<span class="stats-detail-count">' + groups[key].length + '条</span>' +
+            '<span class="stats-detail-arrow">▼</span></div>' +
+            '<div class="stats-detail-group-body">' + groups[key].map(r => renderStatsRecord(r, currentStatsRange)).join('') + '</div>' +
+            '</div>'
+        ).join('');
+    }
+}
+
+// ====== 统计图表（#6 美化）======
+function ringChart(percent, color) {
+    percent = Math.max(0, Math.min(100, Math.round(percent) || 0));
+    const r = 26, c = 2 * Math.PI * r;
+    const offset = c * (1 - percent / 100);
+    return `<svg class="ring-chart" viewBox="0 0 64 64" width="72" height="72" aria-label="完成率 ${percent}%">
+        <circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--border)" stroke-width="6"/>
+        <circle cx="32" cy="32" r="${r}" fill="none" stroke="${color}" stroke-width="6"
+            stroke-linecap="round" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${offset.toFixed(1)}"
+            transform="rotate(-90 32 32)" style="transition: stroke-dashoffset .6s ease"/>
+        <text x="32" y="37" text-anchor="middle" class="ring-num" fill="var(--text)">${percent}%</text>
+    </svg>`;
+}
+function miniBars(items) {
+    if (!items.length) return '';
+    const max = Math.max(1, ...items.map(i => i.count));
+    const slot = 100 / items.length;
+    return `<svg class="mini-bars" viewBox="0 0 100 44" preserveAspectRatio="none" width="100%" height="44" aria-label="分类分布">
+        ${items.map((it, i) => {
+            const h = Math.max(2, Math.round(it.count / max * 36));
+            const x = i * slot + 6;
+            const w = slot - 12;
+            return `<rect x="${x.toFixed(1)}" y="${(44 - h).toFixed(1)}" width="${w.toFixed(1)}" height="${h}" rx="2" fill="${it.color}"><title>${it.name}: ${it.count}</title></rect>`;
+        }).join('')}
+    </svg>`;
+}
+
+function renderStats() {
+    currentStatsDetailType = null;
+    const detailEl = document.getElementById('stats-details');
+    if (detailEl) { detailEl.classList.add('hidden'); detailEl.innerHTML = ''; }
+
+    const start = getStatsRangeStart(currentStatsRange); const startMs = start.getTime();
+    const completedInRange = getCompletedTodos(startMs);
+    const pendingTodos = getPendingTodos(startMs);
+    const totalTodos = (completedInRange || []).concat(pendingTodos || []);
+    const hintEl = document.querySelector('#page-stats .stats-hint');
+    if (hintEl) hintEl.textContent = `统计范围：${getStatsRangeHint(currentStatsRange)}；待完成仅统计本期新建任务`;
+    const diariesInRange = data.diaries.filter(d => new Date(d.date) >= startMs);
+    const goalsDone = data.goals.filter(g => g.progress >= 100).length;
+    const completionRateNum = totalTodos.length ? Math.round(completedInRange.length / totalTodos.length * 100) : 0;
+    const completionRate = completionRateNum + '%';
+    document.getElementById('stats-cards').innerHTML = `
+        <div class="stat-card clickable" onclick="renderStatsDetail('all')"><div class="num">${totalTodos.length}</div><div class="label">待办总数</div></div>
+        <div class="stat-card success clickable" onclick="renderStatsDetail('done')"><div class="num">${completedInRange.length}</div><div class="label">已完成</div></div>
+        <div class="stat-card warning clickable" onclick="renderStatsDetail('pending')"><div class="num">${pendingTodos.length}</div><div class="label">待完成</div></div>
+        <div class="stat-card ring-card"><div class="ring-wrap">${ringChart(completionRateNum, 'var(--primary)')}</div><div class="label">完成率</div></div>`;
+    const cats = {}; totalTodos.forEach(t => cats[t.category]=(cats[t.category]||0)+1);
+    const catColors = {'工作':'#6366f1','生活':'#22c55e','学习':'#f59e0b','其他':'#888'};
+    const catItems = Object.entries(cats).map(([name,count]) => ({ name, count, color: catColors[name]||'#888' }));
+    document.getElementById('stats-category').innerHTML = '<h3>分类统计</h3>' + (Object.keys(cats).length ? Object.entries(cats).map(([name,count]) =>
+        `<div class="stat-row"><span class="name">${name}</span><div class="bar"><div class="bar-fill" style="width:${count/totalTodos.length*100}%;background:${catColors[name]||'#888'}"></div></div><span class="val">${count}</span></div>`).join('') + `<div class="mini-bars-wrap">${miniBars(catItems)}</div>` : '<div class="empty-tip">暂无数据</div>');
+    const pris = {high:0,mid:0,low:0}; totalTodos.forEach(t => pris[t.priority]++);
+    document.getElementById('stats-priority').innerHTML = `<h3>优先级分布</h3>
+        <div class="stat-row"><span class="name">高</span><div class="bar"><div class="bar-fill" style="width:${totalTodos.length?pris.high/totalTodos.length*100:0}%;background:var(--danger)"></div></div><span class="val">${pris.high}</span></div>
+        <div class="stat-row"><span class="name">中</span><div class="bar"><div class="bar-fill" style="width:${totalTodos.length?pris.mid/totalTodos.length*100:0}%;background:var(--warning)"></div></div><span class="val">${pris.mid}</span></div>
+        <div class="stat-row"><span class="name">低</span><div class="bar"><div class="bar-fill" style="width:${totalTodos.length?pris.low/totalTodos.length*100:0}%;background:var(--success)"></div></div><span class="val">${pris.low}</span></div>`;
+    const avgProgress = data.goals.length ? Math.round(data.goals.reduce((s,g)=>s+g.progress,0)/data.goals.length) : 0;
+    document.getElementById('stats-goals').innerHTML = `<h3>目标概览</h3>
+        <div class="stat-row"><span class="name">已完成</span><div class="bar"><div class="bar-fill" style="width:${data.goals.length?goalsDone/data.goals.length*100:0}%;background:var(--success)"></div></div><span class="val">${goalsDone}</span></div>
+        <div class="stat-row"><span class="name">总数</span><div class="bar"><div class="bar-fill" style="width:100%;background:var(--border)"></div></div><span class="val">${data.goals.length}</span></div>
+        <div class="stat-row"><span class="name">平均进度</span><div class="bar"><div class="bar-fill" style="width:${avgProgress}%;background:var(--primary)"></div></div><span class="val">${avgProgress}%</span></div>`;
+    document.getElementById('stats-diaries').innerHTML = `<h3>日记统计</h3>
+        <div class="stat-row clickable" onclick="renderStatsDetail('diaries')"><span class="name">已写</span><div class="bar"><div class="bar-fill" style="width:100%;background:var(--primary-light)"></div></div><span class="val">${diariesInRange.length} ▸</span></div>`;
+}
 // ====== Diary ======
 function toggleDiaryMonth(headerEl) {
     const body = headerEl.nextElementSibling;
