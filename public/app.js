@@ -770,7 +770,7 @@ function formatStatsTime(timeStr, range, isDateOnly) {
 
 // ====== 计划统计（按计划日期，包含所有未归档任务）======
 function getPlanStats(bounds = getStatsRangeBounds(currentStatsRange)) {
-    const planned = data.todos.filter(t => !t.archived && dateKeyInRange(todoPlannedDate(t), bounds.startKey, bounds.endKey));
+    const planned = data.todos.filter(t => dateKeyInRange(todoPlannedDate(t), bounds.startKey, bounds.endKey));
     const onTime = planned.filter(t => t.done && localDateKey(new Date(t.completedAt || t.createdAt)) <= todoPlannedDate(t));
     const overdueCompleted = planned.filter(t => t.done && localDateKey(new Date(t.completedAt || t.createdAt)) > todoPlannedDate(t));
     const unfinished = planned.filter(t => !t.done);
@@ -778,7 +778,7 @@ function getPlanStats(bounds = getStatsRangeBounds(currentStatsRange)) {
 }
 
 function getActualCompleted(bounds = getStatsRangeBounds(currentStatsRange)) {
-    return data.todos.filter(t => !t.archived && t.done && t.completedAt && dateKeyInRange(localDateKey(new Date(t.completedAt)), bounds.startKey, bounds.endKey));
+    return data.todos.filter(t =>t.done && t.completedAt && dateKeyInRange(localDateKey(new Date(t.completedAt)), bounds.startKey, bounds.endKey));
 }
 
 function getStatsTodos(type) {
