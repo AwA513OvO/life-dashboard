@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<!-- saved from url=(0144)https://share.traecontent.cn/__virtual_fs__/artifact-0N8BL2R5FG22VV/c:/Users/23104/Desktop/9.20/public/life-dashboard-guide.html?_vfs=mua2pm1v_1 -->
+<html lang="zh-CN" data-trae-theme="dark"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>生活管理面板 · 使用说明书与安全保障说明</title>
+<style>
+@font-face { font-family: 'NotoSansSC'; src: url('./_shared/fonts/NotoSansSC-Regular.ttf') format('truetype'); font-weight: 400; }
+@font-face { font-family: 'NotoSansSC'; src: url('./_shared/fonts/NotoSansSC-Bold.ttf') format('truetype'); font-weight: 700; }
+
+:root {
+    --bg: #0a0a0f;
+    --bg2: #14141e;
+    --bg3: #1c1c2a;
+    --ink: #e8e8f0;
+    --muted: #8888a0;
+    --rule: #2a2a3e;
+    --accent: #6366f1;
+    --accent2: #22c55e;
+    --accent3: #f59e0b;
+    --danger: #ef4444;
+    --radius: 12px;
+    --radius-lg: 20px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'NotoSansSC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    line-height: 1.8;
+    font-size: 16px;
+    overflow-x: hidden;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background:
+        radial-gradient(ellipse at 20% 0%, rgba(99,102,241,0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 30%, rgba(34,197,94,0.05) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 80%, rgba(99,102,241,0.06) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.container { max-width: 860px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+/* Hero Section */
+.hero { text-align: center; padding: 60px 0 40px; }
+.hero h1 {
+    font-size: 36px; font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), #818cf8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    margin-bottom: 12px; letter-spacing: -0.02em;
+}
+.hero .subtitle { font-size: 18px; color: var(--muted); margin-bottom: 8px; }
+.hero .tagline { font-size: 14px; color: var(--accent2); font-weight: 600; }
+
+/* Badges */
+.badge-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 24px; }
+.badge { background: var(--bg3); border: 1px solid var(--rule); border-radius: 24px; padding: 6px 16px; font-size: 13px; color: var(--muted); }
+.badge.green { border-color: rgba(34,197,94,0.3); color: var(--accent2); }
+.badge.blue { border-color: rgba(99,102,241,0.3); color: #818cf8; }
+.badge.amber { border-color: rgba(245,158,11,0.3); color: var(--accent3); }
+
+/* Section */
+section { padding: 40px 0; }
+h2 { font-size: 26px; font-weight: 700; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 2px solid var(--accent); display: inline-block; }
+h3 { font-size: 18px; font-weight: 700; margin: 24px 0 12px; color: #818cf8; }
+h4 { font-size: 16px; font-weight: 700; margin: 16px 0 8px; }
+p { margin-bottom: 14px; color: var(--ink); }
+mark.key { background: none; color: var(--accent); font-weight: 600; }
+strong { color: #c0c0d8; }
+
+/* Feature Grid */
+.feature-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin: 24px 0; }
+.feature-card { background: rgba(28,28,42,0.7); backdrop-filter: blur(10px); border: 1px solid var(--rule); border-radius: var(--radius); padding: 20px; transition: border-color 0.3s; }
+.feature-card:hover { border-color: var(--accent); }
+.feature-card .icon { font-size: 28px; margin-bottom: 8px; }
+.feature-card h4 { margin-bottom: 6px; }
+.feature-card p { font-size: 14px; color: var(--muted); margin: 0; }
+
+/* Steps */
+.steps { counter-reset: step; }
+.step { position: relative; padding-left: 56px; margin-bottom: 24px; }
+.step::before { counter-increment: step; content: counter(step); position: absolute; left: 0; top: 0; width: 40px; height: 40px; background: linear-gradient(135deg, var(--accent), #818cf8); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; color: #fff; }
+.step h4 { margin-top: 4px; }
+
+/* Security */
+.security-stack { margin: 24px 0; }
+.sec-layer { background: rgba(28,28,42,0.7); border: 1px solid var(--rule); border-left: 4px solid var(--accent2); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 12px; }
+.sec-layer h4 { color: var(--accent2); margin: 0 0 6px; }
+.sec-layer p { font-size: 14px; margin: 0; color: var(--muted); }
+
+/* Flow */
+.flow-row { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; margin: 20px 0; }
+.flow-box { background: rgba(28,28,42,0.7); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 16px; font-size: 13px; text-align: center; flex: 1; min-width: 120px; }
+.flow-box.primary { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.flow-box.success { border-color: var(--accent2); color: var(--accent2); font-weight: 600; }
+.flow-arrow { color: var(--muted); font-size: 20px; font-weight: 700; }
+
+/* Table */
+.table-wrap { overflow-x: auto; max-height: 600px; overflow-y: auto; margin: 20px 0; border-radius: var(--radius); border: 1px solid var(--rule); }
+table { width: 100%; border-collapse: collapse; min-width: 600px; }
+th { background: var(--bg3); padding: 12px 16px; text-align: left; font-size: 14px; font-weight: 700; color: #818cf8; border-bottom: 1px solid var(--rule); position: sticky; top: 0; }
+td { padding: 12px 16px; font-size: 14px; border-bottom: 1px solid var(--rule); color: var(--ink); }
+tr:last-child td { border-bottom: none; }
+
+/* Callout */
+.callout { background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.3); border-left: 4px solid var(--accent); border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; }
+.callout.warning { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.3); border-left-color: var(--accent3); }
+.callout.success { background: rgba(34,197,94,0.1); border-color: rgba(34,197,94,0.3); border-left-color: var(--accent2); }
+.callout p { margin: 0; }
+
+/* FAQ */
+.faq-item { background: rgba(28,28,42,0.7); border: 1px solid var(--rule); border-radius: var(--radius); padding: 20px; margin-bottom: 12px; }
+.faq-item h4 { color: #818cf8; margin-bottom: 8px; }
+.faq-item p { font-size: 14px; color: var(--muted); margin: 0; }
+
+/* Stats */
+.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 24px 0; }
+.stat-card { background: rgba(28,28,42,0.7); border: 1px solid var(--rule); border-radius: var(--radius); padding: 20px; text-align: center; }
+.stat-card .num { font-size: 32px; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.stat-card .label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+/* Divider */
+.divider { height: 1px; background: linear-gradient(90deg, transparent, var(--rule), transparent); margin: 40px 0; }
+
+/* Footer */
+footer { padding: 40px 0 60px; text-align: center; }
+footer p { color: var(--muted); font-size: 14px; }
+
+/* Search */
+.search-box { max-width: 500px; margin: 0 auto 32px; position: relative; }
+.search-box input { width: 100%; background: var(--bg3); border: 1px solid var(--rule); border-radius: 12px; padding: 14px 20px 14px 44px; color: var(--ink); font-size: 15px; outline: none; transition: border-color 0.3s; font-family: inherit; }
+.search-box input:focus { border-color: var(--accent); }
+.search-box input::placeholder { color: var(--muted); }
+.search-box .search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-size: 18px; color: var(--muted); }
+.search-results-info { text-align: center; color: var(--muted); font-size: 13px; margin-top: -20px; margin-bottom: 20px; min-height: 18px; }
+.search-highlight { background: rgba(245,158,11,0.3); color: #fff; padding: 1px 3px; border-radius: 3px; }
+section.search-hidden { display: none; }
+.faq-item.search-hidden { display: none; }
+
+/* TOC */
+.toc-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 24px 0 8px; }
+.toc-item { background: rgba(28,28,42,0.7); border: 1px solid var(--rule); border-radius: var(--radius); padding: 14px 18px; text-decoration: none; color: var(--ink); transition: all 0.2s; display: flex; align-items: center; gap: 10px; }
+.toc-item:hover { border-color: var(--accent); transform: translateX(4px); }
+.toc-item .toc-icon { font-size: 20px; }
+.toc-item .toc-text { font-size: 14px; font-weight: 600; }
+
+/* Back to top */
+.back-top { position: fixed; bottom: 24px; right: 24px; width: 44px; height: 44px; background: var(--accent); color: #fff; border: none; border-radius: 50%; font-size: 18px; cursor: pointer; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(99,102,241,0.4); z-index: 100; }
+.back-top.show { display: flex; }
+
+@media (max-width: 600px) {
+    .feature-grid { grid-template-columns: 1fr; }
+    .stat-grid { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 28px; }
+    h2 { font-size: 22px; }
+    .flow-row { flex-direction: column; }
+    .flow-arrow { transform: rotate(90deg); }
+    .toc-grid { grid-template-columns: 1fr !important; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- ===== Hero ===== -->
+<div class="hero">
+    <h1>生活管理面板</h1>
+    <p class="subtitle">一站式管理你的待办、计时、目标、倒数日、记账、日记与私密内容</p>
+    <p class="tagline">多用户 · 数据隔离 · 端到端加密 · 全平台同步</p>
+    <div class="badge-row">
+        <span class="badge green">🔒 保密柜加密</span>
+        <span class="badge blue">📱 全平台同步</span>
+        <span class="badge amber">☀️ 白天/夜间模式</span>
+        <span class="badge">💰 记账功能</span>
+        <span class="badge">完全免费</span>
+    </div>
+</div>
+
+<!-- ===== Search ===== -->
+<div class="search-box">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="guide-search" placeholder="搜索指南内容，比如：密码、保密柜、记账、管理员...">
+</div>
+<p class="search-results-info" id="search-info"></p>
+
+<!-- ===== TOC ===== -->
+<h3 style="text-align:center;color:var(--muted);font-size:14px;font-weight:600;margin-bottom:8px">📋 快速导航</h3>
+<div class="toc-grid">
+    <a href="https://share.traecontent.cn/__virtual_fs__/artifact-0N8BL2R5FG22VV/c:/Users/23104/Desktop/9.20/public/life-dashboard-guide.html?_vfs=mua2pm1v_1#intro" class="toc-item"><span class="toc-icon">💡</span><span class="toc-text">这是什么</span></a>
+    <a href="https://share.traecontent.cn/__virtual_fs__/artifact-0N8BL2R5FG22VV/c:/Users/23104/Desktop/9.20/public/life-dashboard-guide.html?_vfs=mua2pm1v_1#quickstart" class="toc-item"><span class="toc-icon">🚀</span><span class="toc-text">快速上手</span></a>
+    <a href="https://share.traecontent.cn/__virtual_fs__/artifact-0N8BL2R5FG22VV/c:/Users/23104/Desktop/9.20/public/life-dashboard-guide.html?_vfs=mua2pm1v_1#todo-tips" class="toc-item"><span class="toc-icon">📝</span><span class="toc-text">待办技巧</span></a>
+    <a href="https://share.traecontent.cn/__virtual_fs__/artifact-0N8BL2R5FG22VV/c:/Users/23104/Desktop/9.20/public/life-dashboard-guide.html?_vfs=mua2pm1v_1#todo-date" class="toc-item"><span class="toc-icon">📅</span><span class="toc-text">待办日期管理</span></a>
+    <a href="https://share.traecontent.cn/__virtual_fs__/artifact-0N8BL2R5FG22VV/c:/Users/23104/Desktop/9.20/public/life-dashboard-guide.html?_vfs=mua2pm1v_1#accounting" class="toc-item"><span class="toc-icon">💰</span><span class="toc-text">记账功能</span></a>
+    <a href="https://share.traecontent.cn/__virtual_fs__/artifact-0N8BL2R5FG22VV/c:/Users/23104/Desktop/9.20/public/life-dashboard-guide.html?_vfs=mua2pm1v_1#theme" class="toc-item"><span class="toc-icon">☀️</span><span class="toc-text">白天/夜间模式</span></a>
+    <a href="https://share.traecontent.cn/__virtual_fs__/artifact-0N8BL2R5FG22VV/c:/Users/23104/Desktop/9.20/public/life-dashboard-guide.html?_vfs=mua2pm1v_1#diary-image" class="toc-item"><span class="toc-icon">📷</span><span class="toc-text">日记配图</span></a>
+    <a href="https://share.traecontent.cn/__virtual_fs__/artifact-0N8BL2R5FG22VV/c:/Users/23104/Desktop/9.20/public/life-dashboard-guide.html?_vfs=mua2pm1v_1#diary-audio" class="toc-item"><span class="toc-icon">🎤</span><span class="toc-text">日记录音</span></a>
+    <a href="https://share.traecontent.cn/__virtual_fs__/artifact-0N8BL2R5FG22VV/c:/Users/23104/Desktop/9.20/public/life-dashboard-guide.html?_vfs=mua2pm1v_1#stats-guide" class="toc-item"><span class="toc-icon">📊</span><span class="toc-text">统计指南</span></a>
+    <a href="https://share.traecontent.cn/__virtual_fs__/artifact-0N8BL2R5FG22VV/c:/Users/23104/Desktop/9.20/public/life-dashboard-guide.html?_vfs=mua2pm1v_1#forgot-password" class="toc-item"><span class="toc-icon">🔑</span><span class="toc-text">忘记密码</span></a>
+    <a href="https://share.traecontent.cn/__virtual_fs__/artifact-0N8BL2R5FG22VV/c:/Users/23104/Desktop/9.20/public/life-dashboard-guide.html?_vfs=mua2pm1v_1#security" class="toc-item"><span class="toc-icon">🛡️</span><span class="toc-text">安全保障</span></a>
+    <a href="https://share.traecontent.cn/__virtual_fs__/artifact-0N8BL2R5FG22VV/c:/Users/23104/Desktop/9.20/public/life-dashboard-guide.html?_vfs=mua2pm1v_1#capacity" class="toc-item"><span class="toc-icon">📈</span><span class="toc-text">承载能力</span></a>
+    <a href="https://share.traecontent.cn/__virtual_fs__/artifact-0N8BL2R5FG22VV/c:/Users/23104/Desktop/9.20/public/life-dashboard-guide.html?_vfs=mua2pm1v_1#faq" class="toc-item"><span class="toc-icon">❓</span><span class="toc-text">常见问题</span></a>
+    <a href="https://share.traecontent.cn/__virtual_fs__/artifact-0N8BL2R5FG22VV/c:/Users/23104/Desktop/9.20/public/life-dashboard-guide.html?_vfs=mua2pm1v_1#legal" class="toc-item"><span class="toc-icon">⚖️</span><span class="toc-text">法律与规范</span></a>
+    <a href="https://share.traecontent.cn/__virtual_fs__/artifact-0N8BL2R5FG22VV/c:/Users/23104/Desktop/9.20/public/life-dashboard-guide.html?_vfs=mua2pm1v_1#start" class="toc-item"><span class="toc-icon">🎯</span><span class="toc-text">开始使用</span></a>
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== Chapter: 这是什么 ===== -->
+<section>
+    <h2 id="intro">这是什么</h2>
+    <p>生活管理面板是一个<mark class="key">多用户</mark>的生活管理工具，把待办、计时、目标、倒数日、记账、日记、保密柜整合到一个页面。手机和电脑都能用，数据存云端，换设备自动同步。</p>
+
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="icon">📝</div>
+            <h4>待办清单</h4>
+            <p>按分类和优先级管理任务，自动按重要程度排序。支持日期管理、逾期标记、长按编辑，上下箭头可手动排序。已完成的待办删除后自动归档，统计数据保留。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">⏰</div>
+            <h4>计时器</h4>
+            <p>支持倒计时和正向计时两种模式。考试还有几天、坚持早起多少天，实时显示天/时/分/秒。可自定义颜色。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">🎯</div>
+            <h4>目标管理</h4>
+            <p>设定目标，滑动进度条记录完成度，设截止日期自动倒计时提醒。目标页同时管理倒数日。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">📅</div>
+            <h4>倒数日</h4>
+            <p>记录重要日期，支持"距今还有"和"已经过了"两种模式。自定义 emoji，按距今天数排序。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">💰</div>
+            <h4>记账</h4>
+            <p>手动填写收支账单，应用负责整理、分类和统计。支持收入和支出两大类型，带分类 emoji 图标，月度自动汇总收支结余。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">📊</div>
+            <h4>统计面板</h4>
+            <p>按日、周、月、年查看完成率、分类分布、优先级分布、目标完成度、日记数量和记账统计。点击数字卡片可展开详细记录，计划趋势柱状图一目了然。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">📖</div>
+            <h4>日记</h4>
+            <p>写日记、选心情 emoji、添加配图和录音。日记按月分组折叠展示，图片和录音存储在 Cloudinary 云端。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">🔒</div>
+            <h4>保密柜</h4>
+            <p>独立密码加密的私密空间。日记、便签、待办都可以加密存入，服务器只看到密文。管理员也无法解密。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">☀️</div>
+            <h4>白天/夜间模式</h4>
+            <p>顶栏一键切换深色和浅色主题，偏好自动保存。夜间模式护眼，白天模式适合强光环境。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">☁️</div>
+            <h4>多设备同步</h4>
+            <p>手机上添加的待办，电脑上立刻能看到。数据存云端 MongoDB，换设备不用迁移。</p>
+        </div>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== Chapter: 快速上手 ===== -->
+<section>
+    <h2 id="quickstart">快速上手指南</h2>
+    <p>30 秒上手，3 步开始管理你的生活。</p>
+
+    <div class="steps">
+        <div class="step">
+            <h4>打开网址</h4>
+            <p>在手机或电脑浏览器中打开应用网址。无需安装任何 APP，直接在浏览器中使用。</p>
+        </div>
+        <div class="step">
+            <h4>注册账号</h4>
+            <p>点击"注册"标签，填写用户名、密码（4-8位，包含字母和数字）、确认密码、选择一个密保问题并填写答案。注册后自动登录。<mark class="key">第一个注册的用户自动成为超级管理员</mark>。</p>
+        </div>
+        <div class="step">
+            <h4>开始使用</h4>
+            <p>注册后自动登录，底部导航栏有 <mark class="key">6 个功能入口</mark>：待办、计时、目标、日记、记账、统计。目标和倒数日、日记和保密柜通过页面顶部图标按钮切换。管理员可通过顶栏齿轮图标进入管理后台。顶栏还有主题切换按钮和使用指南入口。</p>
+        </div>
+        <div class="step">
+            <h4>设置保密柜（可选）</h4>
+            <p>如果需要存储私密内容，进入"保密柜"页面，设置一个<mark class="key">独立的保密柜密码</mark>（与登录密码不同，需要确认两遍）。之后所有存入保密柜的内容都会在浏览器端加密，服务器只存密文。</p>
+        </div>
+    </div>
+
+    <div class="callout">
+        <p><strong>💡 小贴士：</strong> 可以把网址添加到手机桌面，变成像 APP 一样的图标，体验更接近原生应用。iPhone 在 Safari 中点分享 → 添加到主屏幕；Android 在浏览器菜单中选"添加到主屏幕"。</p>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== Chapter: 待办技巧 ===== -->
+<section>
+    <h2 id="todo-tips">待办清单使用技巧</h2>
+    <p>待办清单不只是添加和完成，还有更多高效玩法：</p>
+
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="icon">🔴</div>
+            <h4>优先级排序</h4>
+            <p>待办自动按优先级从高到低排序：红色（高）→ 橙色（中）→ 绿色（低）。同等优先级内按你排列的顺序显示。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">✋</div>
+            <h4>长按编辑</h4>
+            <p>长按任意待办项（约 0.6 秒），弹出编辑窗口。可以修改待办内容、分类、优先级和计划日期，保存后自动重新排序。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">⬆️</div>
+            <h4>手动排序</h4>
+            <p>每个待办右侧有上下箭头按钮，可以在同等优先级内调整顺序。第一项的上箭头和最后一项的下箭头自动禁用。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">📦</div>
+            <h4>归档机制</h4>
+            <p>已完成的待办点删除后会自动归档（不是真删），清单变清爽但历史统计数据完整保留。未完成的删除则是真删。</p>
+        </div>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== Chapter: 待办日期管理 ===== -->
+<section>
+    <h2 id="todo-date">待办日期管理</h2>
+    <p>待办清单支持按日期查看和管理任务，逾期任务自动标记，跨天任务不会遗漏。</p>
+
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="icon">📅</div>
+            <h4>日期选择器</h4>
+            <p>待办页面顶部有日期选择器（📅 图标），点击可选择任意日期查看当天的计划任务。标题智能显示"今天""明天""昨天"或具体日期。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">⚠️</div>
+            <h4>逾期标记</h4>
+            <p>今天的待办页面自动显示所有<mark class="key">逾期未完成</mark>的任务（计划日期早于今天）。逾期任务带红色"逾期"标签，一目了然。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">📝</div>
+            <h4>编辑计划日期</h4>
+            <p>长按待办进入编辑弹窗，可以修改"计划日期"。修改后任务自动按新日期重新归类。逾期任务编辑时会显示原计划日期提示。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">🌙</div>
+            <h4>午夜自动刷新</h4>
+            <p>每天 00:00:01 自动刷新待办列表和统计，切换到新一天的页面。跨天使用无需手动刷新，无缝衔接。</p>
+        </div>
+    </div>
+
+    <div class="callout">
+        <p><strong>查看逻辑：</strong> 查看"今天"时，同时显示今天计划的和历史逾期的未完成任务。查看过去或未来的某一天时，只显示那一天原本计划的任务。</p>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== Chapter: 记账功能 ===== -->
+<section>
+    <h2 id="accounting">记账功能</h2>
+    <p>手动填写收支账单，应用负责整理、分类和统计。不自动抓取银行流水，专注于帮你理清每一笔钱花在哪了。</p>
+
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="icon">💸</div>
+            <h4>支出记录</h4>
+            <p>选择"支出"类型，从 9 个分类中选择（🍜餐饮、🚇交通、🛍️购物、📚学习、🎮娱乐、💊医疗、🏠住宿、📱通讯、💰其他），填金额和日期即可。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">💵</div>
+            <h4>收入记录</h4>
+            <p>选择"收入"类型，从 5 个分类中选择（💵生活费、🎓奖学金、💼工资、🎁红包、💰其他），记录每笔收入来源。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">📊</div>
+            <h4>月度汇总</h4>
+            <p>记账页面顶部自动显示<mark class="key">本月收入、支出、结余</mark>三张卡片。一眼掌握当月财务状况。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">📝</div>
+            <h4>备注与排序</h4>
+            <p>每条记录可添加备注（如"和朋友聚餐"），列表按日期倒序排列，最新的在最前。可随时删除记录。</p>
+        </div>
+    </div>
+
+    <div class="callout success">
+        <p><strong>统计集成：</strong> 记账数据自动同步到统计页面。在统计页可以按日/周/月/年查看收支汇总、支出分类柱状图和账单明细，点击可展开每条记录。</p>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== Chapter: 白天/夜间模式 ===== -->
+<section>
+    <h2 id="theme">白天/夜间模式</h2>
+    <p>顶栏新增主题切换按钮，一键在深色和浅色主题间切换，偏好自动保存。</p>
+
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="icon">🌙</div>
+            <h4>夜间模式（默认）</h4>
+            <p>深色背景（#0a0a0f），护眼省电，适合夜晚和暗光环境。这是默认主题，首次打开即生效。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">☀️</div>
+            <h4>白天模式</h4>
+            <p>浅色背景，适合白天强光环境使用。在户外阳光下屏幕更清晰可读。</p>
+        </div>
+    </div>
+
+    <div class="callout">
+        <p><strong>怎么切换：</strong> 点击顶栏右侧的 ☀️/🌙 按钮即可切换。切换后<mark class="key">自动保存</mark>到本地，下次打开页面会自动恢复你上次选择的主题。页面加载前即应用主题，不会出现闪烁。</p>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== Chapter: 日记配图 ===== -->
+<section>
+    <h2 id="diary-image">日记配图功能</h2>
+    <p>写日记时可以添加配图，让记录更生动。图片存储在 Cloudinary 云端，自动压缩优化，不占用数据库空间。</p>
+
+    <div class="steps">
+        <div class="step">
+            <h4>打开日记编辑</h4>
+            <p>在日记页面点 + 添加新日记，或点击已有日记进入编辑模式。</p>
+        </div>
+        <div class="step">
+            <h4>点击"添加图片"</h4>
+            <p>在日记编辑弹窗中，点击"📷 添加图片"按钮，从手机相册或电脑文件夹选择图片。</p>
+        </div>
+        <div class="step">
+            <h4>自动上传压缩</h4>
+            <p>图片上传到 Cloudinary 云端后自动压缩：宽度限制 1280px，质量自动优化，转为 WebP/AVIF 格式。原图最大 10MB，支持 JPG/PNG/HEIC/WebP。</p>
+        </div>
+        <div class="step">
+            <h4>预览和删除</h4>
+            <p>上传完成后显示图片预览，预览右上角有 ✕ 按钮可以删除。保存日记后，日记列表会显示缩略图。删除日记时自动清理云端图片。</p>
+        </div>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== Chapter: 日记录音 ===== -->
+<section>
+    <h2 id="diary-audio">日记录音功能</h2>
+    <p>写日记时可以录音，用声音记录心情。录音存储在 Cloudinary 云端，不占用数据库空间。</p>
+
+    <div class="steps">
+        <div class="step">
+            <h4>点击录音按钮</h4>
+            <p>在日记编辑弹窗中，点击"🎤 录音"按钮，浏览器会请求麦克风权限，点击允许。</p>
+        </div>
+        <div class="step">
+            <h4>开始说话</h4>
+            <p>录音中会显示倒计时（最长 60 秒），页面显示"录音中... Xs"。到 60 秒会自动停止。</p>
+        </div>
+        <div class="step">
+            <h4>停止录音</h4>
+            <p>点击"⏹ 停止"按钮手动结束录音。录音文件最大 2MB（低采样率优化），超过限制会提示缩短时长。</p>
+        </div>
+        <div class="step">
+            <h4>播放和删除</h4>
+            <p>上传完成后显示音频播放器，可以点播放按钮听录音。播放器右上角有 ✕ 按钮可以删除录音。日记列表有录音的会显示 🎤 标志。删除日记时自动清理云端录音。</p>
+        </div>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== Chapter: 统计指南 ===== -->
+<section>
+    <h2 id="stats-guide">统计面板使用指南</h2>
+    <p>统计页面整合了待办、日记和记账的全面数据分析，按日/周/月/年四个维度查看。</p>
+
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="icon">📋</div>
+            <h4>计划统计</h4>
+            <p>按计划日期统计任务：计划任务总数、实际完成数、未完成数、完成率（环形图）。点击卡片可展开详细记录。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">📈</div>
+            <h4>计划趋势图</h4>
+            <p>柱状图展示每天/每周/每月的计划数量。点击柱形可展开对应区间的详情：按时完成、逾期完成、未完成数量。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">🏷️</div>
+            <h4>分类与优先级</h4>
+            <p>任务分类分布柱状图（工作/生活/学习/其他），优先级分布（高/中/低），一目了然。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">🎯</div>
+            <h4>目标概览</h4>
+            <p>已完成目标数、总数、平均进度百分比，进度条可视化。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">📖</div>
+            <h4>日记统计</h4>
+            <p>统计区间内已写日记数量，点击可展开日记列表（标题 + 内容摘要 + emoji）。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">💰</div>
+            <h4>记账统计</h4>
+            <p>收支汇总（收入/支出/结余），支出分类柱状图按金额排序，账单明细可展开查看。</p>
+        </div>
+    </div>
+
+    <div class="callout">
+        <p><strong>统计逻辑说明：</strong> 计划统计按<mark class="key">计划日期</mark>筛选（任务计划在哪天就算哪天的），实际完成按<mark class="key">完成日期</mark>筛选（哪天完成算哪天的）。统计范围提示显示具体的日期区间，方便核对。</p>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== Chapter: 忘记密码 ===== -->
+<section>
+    <h2 id="forgot-password">忘记密码怎么办</h2>
+    <p>两种方式找回密码，总有一种适合你。</p>
+
+    <h3>方式一：密保问题自助找回（推荐）</h3>
+    <div class="flow-row">
+        <div class="flow-box primary">输入用户名</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-box">显示密保问题</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-box">回答正确</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-box success">设置新密码</div>
+    </div>
+    <p>注册时设置的密保问题派上用场了。输入用户名后系统会显示你设置的密保问题，回答正确后即可设置新密码（需输入两遍确认）。密保答案使用 bcrypt 哈希存储，安全可靠。</p>
+
+    <h3>方式二：找管理员批准重置</h3>
+    <p>如果连密保答案也忘了，可以申请管理员重置：</p>
+    <div class="feature-grid">
+        <div class="feature-card">
+            <h4>📨 用户发起请求</h4>
+            <p>在找回密码页面点击"密保也忘了？找管理员重置"，系统向管理员发送重置请求。同一用户不能重复提交。</p>
+        </div>
+        <div class="feature-card">
+            <h4>✅ 管理员批准</h4>
+            <p>管理员在后台看到请求后点击"批准重置"。批准后不需要知道用户的新密码，保护用户隐私。</p>
+        </div>
+        <div class="feature-card">
+            <h4>🔑 用户设置新密码</h4>
+            <p>管理员批准后，用户重新进入找回密码页面，会看到绿色提示"管理员已批准你的重置请求"，直接设置新密码即可（无需密保答案）。</p>
+        </div>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== Chapter: 安全保障 ===== -->
+<section>
+    <h2 id="security">安全保障说明</h2>
+    <p>四层安全架构，从传输到存储全方位保护你的数据。</p>
+
+    <div class="security-stack">
+        <div class="sec-layer">
+            <h4>🔒 第一层：HTTPS 加密传输</h4>
+            <p>所有数据传输使用 HTTPS 加密，防止中间人窃听。即使连接公共 WiFi，你的数据也无法被拦截。</p>
+        </div>
+        <div class="sec-layer">
+            <h4>🔐 第二层：密码哈希存储</h4>
+            <p>登录密码使用 bcrypt + 盐值哈希存储，即使数据库泄露，攻击者也无法反推密码。密保答案同样哈希存储。</p>
+        </div>
+        <div class="sec-layer">
+            <h4>🛡️ 第三层：用户数据隔离</h4>
+            <p>每个用户的数据存储在独立的命名空间下，通过 JWT 令牌验证身份。任何越权访问都会被直接拒绝。管理员也无法查看用户的个人数据内容。</p>
+        </div>
+        <div class="sec-layer">
+            <h4>🔐 第四层：保密柜端到端加密</h4>
+            <p>保密柜内的内容使用 AES-256 加密算法，在你的浏览器本地加密后才传给服务器。服务器存储的只有密文，加密密钥（你的保密柜密码）<mark class="key">永远不会传到服务器</mark>。这意味着即使数据库被攻破，保密柜内容也无法被解密。</p>
+        </div>
+    </div>
+
+    <h3>📊 安全对比表</h3>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>角色</th>
+                    <th>能看到的</th>
+                    <th>看不到的</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>普通用户</td>
+                    <td>自己的所有数据</td>
+                    <td>其他用户的任何数据</td>
+                </tr>
+                <tr>
+                    <td>管理员</td>
+                    <td>用户名、活跃时间、注册时间、重置请求</td>
+                    <td>任何用户的待办、日记、目标、记账</td>
+                </tr>
+                <tr>
+                    <td>超级管理员</td>
+                    <td>同管理员 + 设置/取消管理员权限</td>
+                    <td>看不到保密柜内容</td>
+                </tr>
+                <tr>
+                    <td>服务器/数据库</td>
+                    <td>所有密文数据</td>
+                    <td style="color:var(--accent2);font-weight:600">看不到保密柜内容</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p><strong>管理员能看到什么？</strong> 管理员只能看到：用户名、上次活跃时间（按最近上线排序）、注册时间、待处理的密码重置请求。管理员<strong>看不到</strong>：任何用户的待办、日记、目标、记账、保密柜内容。管理员可以批准用户的密码重置请求（批准后用户自行设置新密码），但无法查看或解密任何用户的个人数据。</p>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== Chapter: 承载能力 ===== -->
+<section>
+    <h2 id="capacity">承载能力说明</h2>
+    <p>这个应用能支撑多少人同时使用？答案是：轻松应对 100 人规模。</p>
+
+    <div class="stat-grid">
+        <div class="stat-card"><div class="num">100</div><div class="label">人同时使用无压力</div></div>
+        <div class="stat-card"><div class="num">512MB</div><div class="label">免费 MongoDB 存储</div></div>
+        <div class="stat-card"><div class="num">25GB</div><div class="label">Cloudinary 图片存储</div></div>
+    </div>
+
+    <h3>为什么 100 人没问题？</h3>
+    <p><mark class="key">1. 架构轻量</mark>：Node.js + Express 是非阻塞 I/O 模型，单进程就能处理大量并发请求。不像 PHP 每个请求开一个线程，内存占用极低。</p>
+    <p><mark class="key">2. 数据量小</mark>：100 个用户，每人 100 条待办 + 50 篇日记 + 20 个目标 + 200 条记账记录，全部加起来不到 10MB。MongoDB 免费版 512MB 存储绰绰有余。</p>
+    <p><mark class="key">3. 并发不是持续占用</mark>：用户打开 APP 看一眼待办列表，加载完就不再占用服务器资源了。100 人不会同时点击，实际峰值并发通常在 5-10 个请求，远在承载范围内。</p>
+    <p><mark class="key">4. 图片/录音存云端</mark>：图片和录音存储在 Cloudinary 云端（25GB 免费空间），不占 MongoDB 空间，也不经过应用服务器带宽。</p>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== Chapter: 常见问题 ===== -->
+<section>
+    <h2 id="faq">常见问题</h2>
+
+    <div class="faq-item">
+        <h4>Q: 忘记登录密码怎么办？</h4>
+        <p>登录页点击"忘记密码？"，输入用户名后系统显示你的密保问题。回答正确后可以设置新密码（需输入两遍确认）。如果密保也忘了，可以点击"找管理员重置"，管理员批准后可直接设置新密码。</p>
+    </div>
+    <div class="faq-item">
+        <h4>Q: 管理员批准后怎么设置新密码？</h4>
+        <p>管理员批准后，重新进入"忘记密码"流程：输入用户名 → 系统显示绿色提示"管理员已批准你的重置请求" → 直接输入新密码（无需密保答案）→ 完成重置。</p>
+    </div>
+    <div class="faq-item">
+        <h4>Q: 重置密码后数据还在吗？</h4>
+        <p>完全保留。重置密码只是修改了登录密码，<mark class="key">账号、待办、日记、目标、记账等所有数据都不会变</mark>。用户名也不变，还是用原来的用户名登录。</p>
+    </div>
+    <div class="faq-item">
+        <h4>Q: 忘记保密柜密码怎么办？</h4>
+        <p>保密柜页面点击"忘记保密柜密码？"，系统会弹出红色警告确认。输入登录密码验证身份后，系统会清空保密柜密码和所有加密内容，你可以重新设置新密码。<mark class="key">注意：旧的加密内容会永久丢失，无法恢复</mark>，这是端到端加密的安全代价。</p>
+    </div>
+    <div class="faq-item">
+        <h4>Q: 删除已完成的待办，统计数据会消失吗？</h4>
+        <p>不会。已完成的待办被删除时会自动<mark class="key">归档</mark>——从待办清单中消失，但历史统计数据（日/周/月/年）仍然保留。你可以放心清理已完成的任务保持清单清爽，周/月/年的完成记录不会受影响。未完成的待办删除则是真删（因为没完成过，不影响统计）。</p>
+    </div>
+    <div class="faq-item">
+        <h4>Q: 怎么编辑已有的待办事项？</h4>
+        <p><mark class="key">长按</mark>要编辑的待办项（约 0.6 秒），会弹出编辑窗口，可以修改待办内容、分类、优先级和计划日期。保存后待办会自动重新排序。手机和电脑都支持长按操作。</p>
+    </div>
+    <div class="faq-item">
+        <h4>Q: 怎么查看不同日期的待办？</h4>
+        <p>待办页面顶部有日期选择器（📅 图标），点击可以选择任意日期查看当天计划的任务。标题会智能显示"今天""明天""昨天"或具体日期。查看"今天"时还会自动显示所有逾期未完成的任务。</p>
+    </div>
+    <div class="faq-item">
+        <h4>Q: 怎么调整待办的顺序？</h4>
+        <p>待办自动按优先级排序（高→中→低）。在<mark class="key">同等优先级</mark>内，可以点待办右侧的 ↑/↓ 按钮手动调整顺序。想跨优先级调整，长按编辑修改优先级即可。</p>
+    </div>
+    <div class="faq-item">
+        <h4>Q: 记账功能怎么用？</h4>
+        <p>点击底部导航的 💰 记账入口，填写金额、选择支出或收入类型、选择分类、选择日期、可选填备注，点 + 添加。页面顶部自动显示本月收入、支出和结余汇总。记账数据也会同步到统计页面，可以按日/周/月/年查看收支明细和分类分布。</p>
+    </div>
+    <div class="faq-item">
+        <h4>Q: 怎么切换白天/夜间模式？</h4>
+        <p>点击顶栏右侧的 ☀️ 或 🌙 按钮即可切换。夜间模式（深色）是默认的，白天模式（浅色）适合强光环境。切换后自动保存到本地，下次打开页面会恢复你上次的选择。</p>
+    </div>
+    <div class="faq-item">
+        <h4>Q: 日记可以加图片吗？</h4>
+        <p>可以。写日记时点"📷 添加图片"按钮，从手机相册或电脑选择图片即可。图片自动上传到 Cloudinary 云端并压缩优化，日记列表会显示缩略图。原图最大 10MB，支持 JPG/PNG/HEIC/WebP 等格式。删除日记时自动清理云端图片。</p>
+    </div>
+    <div class="faq-item">
+        <h4>Q: 日记可以录音吗？</h4>
+        <p>可以。写日记时点"🎤 录音"按钮，允许麦克风权限后开始说话。录音最长 60 秒，到时间自动停止，也可以提前点"⏹ 停止"。录音上传后显示播放器，可以随时回放。录音存储在云端，不占数据库空间。删除日记时自动清理云端录音。</p>
+    </div>
+    <div class="faq-item">
+        <h4>Q: 统计里的"待完成"为什么包含昨天的待办？</h4>
+        <p>这是正确的逻辑。"待完成"显示的是<mark class="key">所有当前未完成</mark>的待办，包括之前创建但还没做完的。这样你能在统计页面看到自己还欠着哪些任务。而已完成只统计在选定时间范围内完成的。</p>
+    </div>
+    <div class="faq-item">
+        <h4>Q: 统计的"已完成"是按创建时间还是完成时间算的？</h4>
+        <p>按<mark class="key">完成时间</mark>算的。哪天完成的就算哪天的统计。比如你周一创建的任务周三完成，它会计入周三的完成数，而不是周一的。这样统计更准确反映你每天实际完成了多少事。</p>
+    </div>
+    <div class="faq-item">
+        <h4>Q: 统计页面的数字可以点开吗？</h4>
+        <p>可以。点击"计划任务""实际完成""未完成"三个数字卡片可以展开查看每条记录的<mark class="key">内容和时间</mark>。日记统计行和账单明细也可以点击展开。日视图直接列出所有记录；周视图按天分组（周一、周二...）；月视图按周分组（第1周、第2周...）；年视图按月分组（1月、2月...）。每个分组可以折叠/展开。再次点击同一个卡片可以收起详情。</p>
+    </div>
+    <div class="faq-item">
+        <h4>Q: 计划趋势图是什么？</h4>
+        <p>统计页面新增的计划趋势柱状图，展示每个时间区间（天/周/月）计划了多少任务。柱形高度代表数量，点击柱形可以展开对应区间的详情：按时完成数、逾期完成数、未完成数。帮助你直观了解任务安排和完成节奏。</p>
+    </div>
+    <div class="faq-item">
+        <h4>Q: 日记列表怎么按月分组了？</h4>
+        <p>日记列表改为按月分组展示，每月标题显示日记篇数，可以点击折叠/展开。默认展开当前月，历史月份可折叠收起，列表更清爽。月份按时间倒序排列，最新的在最前。长按日记可快速进入编辑。</p>
+    </div>
+    <div class="faq-item">
+        <h4>Q: 数据会丢失吗？</h4>
+        <p>不会。数据存储在 MongoDB 云数据库中，自动持久化。保存时有<mark class="key">防覆盖锁</mark>：如果本地数据异常为空但云端有数据，系统会阻止保存防止误覆盖。保存失败会自动重试，重试仍失败时会在本地备份并显示红色警告。删除日记时也会自动清理云端图片和录音，不留垃圾文件。</p>
+    </div>
+    <div class="faq-item">
+        <h4>Q: 管理员能看到我的日记和保密柜吗？</h4>
+        <p>不能。日记和普通数据虽然存储在服务器上，但管理员只能通过后台看到用户名和活跃时间，无法查看内容。保密柜内容更是使用 AES-256 在浏览器端加密，服务器存储的是密文，<mark class="key">任何人（包括管理员）都无法解密</mark>。</p>
+    </div>
+    <div class="faq-item">
+        <h4>Q: 这个网站有病毒吗？安全吗？</h4>
+        <p>安全。这是一个纯前端 + Node.js 后端的应用，不下载任何可执行文件。密码使用 bcrypt 哈希存储，传输使用 HTTPS 加密，保密柜使用 AES-256 端到端加密。代码开源，部署在正规云平台。</p>
+    </div>
+    <div class="faq-item">
+        <h4>Q: 手机上怎么变成 APP 图标？</h4>
+        <p>iPhone：在 Safari 中打开网址 → 点击底部分享按钮 → "添加到主屏幕"。Android：在 Chrome 中打开 → 菜单 → "添加到主屏幕"。添加后图标和原生 APP 一样，全屏体验。</p>
+    </div>
+    <div class="faq-item">
+        <h4>Q: 多人使用会互相看到数据吗？</h4>
+        <p>不会。每个用户有独立的数据存储空间，通过 JWT 令牌验证身份。系统在每次请求时检查身份，<mark class="key">任何越权访问都会被直接拒绝</mark>。你的待办、日记、目标、记账只有你自己能看到。</p>
+    </div>
+    <div class="faq-item">
+        <h4>Q: 收费吗？</h4>
+        <p>完全免费。本应用由个人开发者维护，不收费、无广告、不卖数据。Cloudinary（图片/录音存储）和 MongoDB（数据库）的免费额度足够支撑日常使用。</p>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== Chapter: 法律意识 ===== -->
+<section>
+    <h2 id="legal">法律意识与使用规范</h2>
+
+    <h3>📋 用户使用须知</h3>
+    <div class="feature-grid">
+        <div class="feature-card">
+            <h4>✓ 可以做的</h4>
+            <p>记录待办事项、管理目标计划、写个人日记、记账理财、存储私密便签、追踪重要日期——所有个人生活管理相关的正当用途都完全没问题。</p>
+        </div>
+        <div class="feature-card">
+            <h4>✗ 不可以做的</h4>
+            <p>存储违法违规内容、传播侵权信息、进行诈骗或恶意活动、利用本平台从事任何违反法律法规的行为。保密柜加密≠法外之地。</p>
+        </div>
+    </div>
+
+    <div class="callout warning">
+        <p><strong>重要提醒：</strong> 虽然保密柜内容是端到端加密的（管理员也无法查看），但这并不意味着你可以用它存储违法内容。如果接到合法的司法调查要求，管理员可以配合封禁账号、保留相关日志记录。</p>
+    </div>
+
+    <h3>⚖️ 管理员责任与义务</h3>
+    <div class="feature-grid">
+        <div class="feature-card">
+            <h4>数据保护义务</h4>
+            <p>管理员有义务保护用户数据安全，不得泄露用户信息、不得非授权访问用户数据、不得利用管理员权限谋取私利。</p>
+        </div>
+        <div class="feature-card">
+            <h4>内容管理责任</h4>
+            <p>对于非加密的公开或半公开内容，管理员在知情后有义务及时处理违法违规内容。保密柜加密内容管理员无法查看，不承担内容审核责任。</p>
+        </div>
+        <div class="feature-card">
+            <h4>密码重置管理</h4>
+            <p>管理员可以批准用户的密码重置请求，但不应主动重置用户密码除非用户提出请求。批准重置后管理员不知道用户新密码。</p>
+        </div>
+        <div class="feature-card">
+            <h4>非经营性使用</h4>
+            <p>本应用为个人开发项目，非商业运营。管理员不向用户收费，不投放广告，不收集和出售用户数据。</p>
+        </div>
+        <div class="feature-card">
+            <h4>使用范围建议</h4>
+            <p>适合个人、家庭、小团队（100人以内）的日常生活管理使用。不建议用于大规模商业场景或关键业务系统。</p>
+        </div>
+        <div class="feature-card">
+            <h4>账号安全提醒</h4>
+            <p>建议设置强度适中的密码（4-8位字母+数字），定期更换。不要将账号借给他人使用。保密柜密码与登录密码分开设置。</p>
+        </div>
+    </div>
+
+    <h3>📌 风险等级一览</h3>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>场景</th>
+                    <th>风险等级</th>
+                    <th>说明</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>日常待办/目标管理</td>
+                    <td style="color:var(--accent2);font-weight:600">极低</td>
+                    <td>数据在云端加密存储，仅自己可见</td>
+                </tr>
+                <tr>
+                    <td>记账理财</td>
+                    <td style="color:var(--accent2);font-weight:600">极低</td>
+                    <td>仅记录金额和分类，不含银行账号等敏感信息</td>
+                </tr>
+                <tr>
+                    <td>日记配图/录音</td>
+                    <td style="color:var(--accent3);font-weight:600">较低</td>
+                    <td>存储在 Cloudinary 云端，建议不要上传过于私密的内容</td>
+                </tr>
+                <tr>
+                    <td>保密柜内容</td>
+                    <td style="color:var(--accent2);font-weight:600">极低</td>
+                    <td>AES-256 端到端加密，服务器只存密文</td>
+                </tr>
+                <tr>
+                    <td>忘记保密柜密码</td>
+                    <td style="color:var(--danger);font-weight:600">高</td>
+                    <td>重置后所有加密内容永久丢失，无法恢复</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== Chapter: 开始使用 ===== -->
+<section>
+    <h2 id="start">开始使用</h2>
+    <p><strong>三步开始：</strong> 1. 打开网址 → 2. 注册账号（填用户名 + 密码 + 确认密码 + 密保） → 3. 开始添加你的第一个待办事项！</p>
+    <p>底部导航 6 个入口：📝 待办、⏰ 计时、🎯 目标（含倒数日）、📖 日记（含保密柜）、💰 记账、📊 统计。顶栏还有 ☀️ 主题切换、❓ 使用指南、⚙️ 管理后台（仅管理员）。</p>
+
+    <div style="text-align:center; margin-top:32px;">
+        <p style="color:var(--muted);font-size:14px;">如果觉得好用，欢迎分享给身边的朋友</p>
+    </div>
+</section>
+
+<!-- ===== Footer ===== -->
+<footer>
+    <p>生活管理面板 · 使用说明书与安全保障说明</p>
+    <p style="margin-top:8px;">多用户 · 数据隔离 · 端到端加密 · 全平台同步 · 完全免费</p>
+    <p style="margin-top:16px;">本应用由个人开发者维护，代码开源，部署于正规云平台。</p>
+    <p style="margin-top:8px;font-size:12px;">注册即表示同意仅用于合法正当用途 · 最终解释权归管理员所有</p>
+</footer>
+
+</div>
+
+<!-- Back to top button -->
+<button class="back-top" id="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+(function() {
+    const searchInput = document.getElementById('guide-search');
+    const searchInfo = document.getElementById('search-info');
+    const sections = document.querySelectorAll('section');
+    const faqItems = document.querySelectorAll('.faq-item');
+    const tocGrid = document.querySelector('.toc-grid');
+    const tocTitle = document.querySelector('h3[style*="text-align:center"]');
+    const backTop = document.getElementById('back-top');
+
+    const originalHTML = {};
+    sections.forEach((sec, i) => { originalHTML['sec-' + i] = sec.innerHTML; });
+
+    function clearHighlights() {
+        sections.forEach((sec, i) => { sec.innerHTML = originalHTML['sec-' + i]; });
+    }
+
+    function highlightText(el, keyword) {
+        if (!keyword) return;
+        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+        const nodes = [];
+        while (walker.nextNode()) nodes.push(walker.currentNode);
+        nodes.forEach(node => {
+            const text = node.nodeValue;
+            const lower = text.toLowerCase();
+            const kw = keyword.toLowerCase();
+            if (lower.includes(kw) && node.parentElement.tagName !== 'SCRIPT' && node.parentElement.tagName !== 'STYLE') {
+                const regex = new RegExp('(' + keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+                const span = document.createElement('span');
+                span.innerHTML = text.replace(regex, '<span class="search-highlight">$1</span>');
+                node.parentNode.replaceChild(span, node);
+            }
+        });
+    }
+
+    function doSearch() {
+        const keyword = searchInput.value.trim().toLowerCase();
+        clearHighlights();
+        if (!keyword) {
+            sections.forEach(s => s.classList.remove('search-hidden'));
+            faqItems.forEach(f => f.classList.remove('search-hidden'));
+            searchInfo.textContent = '';
+            if (tocGrid) tocGrid.style.display = '';
+            if (tocTitle) tocTitle.style.display = '';
+            return;
+        }
+        if (tocGrid) tocGrid.style.display = 'none';
+        if (tocTitle) tocTitle.style.display = 'none';
+        let matchCount = 0, sectionCount = 0;
+        sections.forEach(sec => {
+            const text = sec.textContent.toLowerCase();
+            if (text.includes(keyword)) {
+                sec.classList.remove('search-hidden');
+                highlightText(sec, keyword);
+                sectionCount++;
+                const faqsInSec = sec.querySelectorAll('.faq-item');
+                faqsInSec.forEach(faq => {
+                    const faqText = faq.textContent.toLowerCase();
+                    if (faqText.includes(keyword)) { faq.classList.remove('search-hidden'); matchCount++; }
+                    else { faq.classList.add('search-hidden'); }
+                });
+                if (faqsInSec.length === 0) matchCount++;
+            } else { sec.classList.add('search-hidden'); }
+        });
+        const total = matchCount > 0 ? matchCount : sectionCount;
+        searchInfo.textContent = total > 0 ? '找到 ' + sectionCount + ' 个相关章节' : '没有找到相关内容';
+    }
+
+    let searchTimer;
+    searchInput.addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(doSearch, 200); });
+
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 400) backTop.classList.add('show');
+        else backTop.classList.remove('show');
+    });
+
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+        a.addEventListener('click', e => {
+            const id = a.getAttribute('href').substring(1);
+            const target = document.getElementById(id);
+            if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth', block: 'start' }); history.replaceState(null, '', '#' + id); }
+        });
+    });
+})();
+</script>
+
+
+</body></html>
