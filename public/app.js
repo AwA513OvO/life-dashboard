@@ -958,7 +958,6 @@ function renderStats() {
         </div>
         ${Object.keys(acats).length ? '<div style="margin-top:10px">' + Object.entries(acats).sort((a, b) => b[1] - a[1]).map(([name, val]) => `<div class="account-category-row"><span class="name">${name}</span><div class="bar"><div class="bar-fill" style="width:${val / maxExp * 100}%"></div></div><span class="val">¥${val.toFixed(2)}</span></div>`).join('') + '</div>' : '<div class="empty-tip" style="padding:12px 0">暂无支出分类</div>'}
         <div class="stat-row clickable" onclick="renderStatsDetail('account-all')" style="margin-top:10px"><span class="name">账单明细</span><div class="bar"><div class="bar-fill" style="width:100%;background:var(--primary-light)"></div></div><span class="val">${acc.length} 条 ▸</span></div>`;
-}
 // ====== Diary ======
 function toggleDiaryMonth(headerEl) {
     const body = headerEl.nextElementSibling;
