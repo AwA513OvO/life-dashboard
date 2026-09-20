@@ -811,6 +811,21 @@ function renderPlanDayDetail(key) {
     const done=arr.filter(t=>t.done).length, overdue=arr.filter(t=>t.done&&localDateKey(new Date(t.completedAt||t.createdAt))>todoPlannedDate(t)).length, unfinished=arr.filter(t=>!t.done).length;
     detail.innerHTML=`<div class="stats-detail-group"><div class="stats-detail-group-header"><span>${formatDateKey(key,true)} 计划详情</span><span class="stats-detail-count">计划 ${arr.length} · 完成 ${done}</span></div><div class="stats-detail-group-body"><div class="stats-record"><span class="stats-record-content">按时完成</span><span class="stats-record-time">${done-overdue}</span></div><div class="stats-record"><span class="stats-record-content">逾期完成</span><span class="stats-record-time">${overdue}</span></div><div class="stats-record"><span class="stats-record-content">未完成</span><span class="stats-record-time">${unfinished}</span></div></div></div><div class="stats-detail-list">${arr.map(t=>`<div class="stats-record"><span class="stats-record-badge ${t.done?'done':'pending'}">${t.done?'✓':'○'}</span><span class="stats-record-content">${t.text}</span><span class="stats-record-time">${t.done?(localDateKey(new Date(t.completedAt))>todoPlannedDate(t)?'逾期完成':'按时'): '未完成'}</span></div>`).join('')}</div>`;
 }
+// 补充 ringChart 函数
+function ringChart(percent, color) {
+    const radius = 30;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference - (percent / 100) * circumference;
+    return `
+        <svg width="80" height="80" viewBox="0 0 80 80">
+            <circle cx="40" cy="40" r="${radius}" fill="none" stroke="var(--border)" stroke-width="8"></circle>
+            <circle cx="40" cy="40" r="${radius}" fill="none" stroke="${color}" stroke-width="8"
+                stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"
+                transform="rotate(-90 40 40)" stroke-linecap="round"></circle>
+            <text x="40" y="45" text-anchor="middle" fill="var(--text)" font-size="16" font-weight="bold">${percent}%</text>
+        </svg>
+    `;
+}
 function renderStats() {
     currentStatsDetailType=null; const detailEl=document.getElementById('stats-details'); if(detailEl){detailEl.classList.add('hidden');detailEl.innerHTML='';}
     const bounds=getStatsRangeBounds(currentStatsRange), plan=getPlanStats(bounds), actual=getActualCompleted(bounds);
