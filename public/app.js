@@ -464,7 +464,7 @@ function renderTodos() {
     list.innerHTML = items.length === 0 ? '<div class="empty-tip">暂无待办事项</div>' : items.map((t, idx) => {
         const overdue = selectedTodoDate === today && isTodoOverdue(t, today);
         return `<div class="todo-item ${t.done?'done':''} ${t.priority}" data-id="${t.id}"
-            ontouchstart="event.preventDefault(); startLongPress('${t.id}')" ontouchend="cancelLongPress()" ontouchmove="cancelLongPress()"
+            ontouchstart="event.preventDefault(); startLongPress('${t.id}')" ontouchend="cancelLongPress()" 
 onmousedown="startLongPress('${t.id}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()"
 oncontextmenu="return false">
             <div class="todo-check ${t.done?'done':''}" onclick="event.stopPropagation(); toggleTodo('${t.id}')">${t.done?'✓':''}</div>
@@ -482,9 +482,16 @@ oncontextmenu="return false">
     document.getElementById('todo-progress-text').textContent = `${done} / ${total}`;
 }
 
-function startLongPress(id) { cancelLongPress(); longPressTimer = setTimeout(() => { editTodo(id); }, 600); }
-function cancelLongPress() { if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; } }
-
+function startLongPress(id) {
+    cancelLongPress();
+    longPressTimer = setTimeout(() => {
+        longPressTimer = null;
+        editTodo(id);
+    }, 600);
+}
+function cancelLongPress() {
+    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+}
 function editTodo(id) {
     const t = data.todos.find(x => x.id === id); if (!t) return;
     editingTodoId = id;
