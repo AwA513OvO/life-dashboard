@@ -502,7 +502,12 @@ function editTodo(id) {
     const overdue = isTodoOverdue(t);
     const modal = document.querySelector('#todo-edit-modal .modal-content');
     let hint = document.getElementById('todo-edit-overdue-hint');
-    if (!hint) { hint=document.createElement('p'); hint.id='todo-edit-overdue-hint'; hint.className='todo-detail-hint'; modal.insertBefore(hint, document.querySelector('.modal-actions')); }
+    if (!hint) {
+        hint = document.createElement('p');
+        hint.id = 'todo-edit-overdue-hint';
+        hint.className = 'todo-detail-hint';
+        modal.insertBefore(hint, modal.querySelector('.modal-actions'));  // ← 只改这一行
+    }
     hint.textContent = overdue ? `原计划日期：${formatDateKey(todoPlannedDate(t), true)}；当前为逾期任务。修改计划日期后，它会按新的日期重新安排。` : `计划日期：${formatDateKey(todoPlannedDate(t), true)}`;
     hint.classList.toggle('hidden', !overdue);
     document.getElementById('todo-edit-modal').classList.remove('hidden');
