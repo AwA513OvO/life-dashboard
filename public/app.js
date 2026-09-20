@@ -466,7 +466,7 @@ function renderTodos() {
         return `<div class="todo-item ${t.done?'done':''} ${t.priority}" data-id="${t.id}"
             ontouchstart="event.preventDefault(); startLongPress('${t.id}')" ontouchend="cancelLongPress()" ontouchmove="cancelLongPress()"
 onmousedown="startLongPress('${t.id}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()"
-oncontextmenu="return false"
+oncontextmenu="return false">
             <div class="todo-check ${t.done?'done':''}" onclick="event.stopPropagation(); toggleTodo('${t.id}')">${t.done?'✓':''}</div>
             <div style="flex:1"><div class="todo-text ${t.done?'done':''}">${t.text}</div>
             <div class="todo-meta"><span>${t.category}</span><span>${t.priority==='high'?'高':t.priority==='mid'?'中':'低'}</span>${overdue?'<span class="todo-overdue">逾期</span>':''}</div></div>
