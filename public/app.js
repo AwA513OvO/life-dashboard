@@ -488,6 +488,8 @@ function startLongPress(id) {
         longPressTimer = null;
         editTodo(id);
     }, 600);
+    // 记录起始位置，用于判断是否滑动
+    window._longPressStart = { x: startX, y: startY };
 }
 function cancelLongPress() {
     if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
