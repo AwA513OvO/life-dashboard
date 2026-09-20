@@ -924,9 +924,25 @@ function renderStats() {
         <div class="stat-row"><span class="name">总数</span><div class="bar"><div class="bar-fill" style="width:100%;background:var(--border)"></div></div><span class="val">${data.goals.length}</span></div>
         <div class="stat-row"><span class="name">平均进度</span><div class="bar"><div class="bar-fill" style="width:${avgProgress}%;background:var(--primary)"></div></div><span class="val">${avgProgress}%</span></div>`;
 
-    const diariesInRange = data.diaries.filter(d => dateKeyInRange(localDateKey(new Date(d.date)), bounds.startKey, bounds.endKey));
+       const diariesInRange = data.diaries.filter(d => dateKeyInRange(localDateKey(new Date(d.date)), bounds.startKey, bounds.endKey));
     document.getElementById('stats-diaries').innerHTML = `<h3>日记统计</h3>
         <div class="stat-row clickable" onclick="renderStatsDetail('diaries')"><span class="name">已写</span><div class="bar"><div class="bar-fill" style="width:100%;background:var(--primary-light)"></div></div><span class="val">${diariesInRange.length} ▸</span></div>`;
+
+    // ===== 记账统计 =====
+    const acc = (data.accounts || []).filter(a => dateKeyInRange(a.date, bounds.startKey, bounds.endKey));
+    const inc = acc.filter(a => a.type === 'income').reduce((s, a) => s + Number(a.amount || 0), 0);
+    const exp = acc.filter(a => a.type === 'expense').reduce((s, a) => s + Number(a.amount || 0), 0);
+    const acats = {}; acc.filter(a => a.type === 'expense').forEach(a => acats[a.category] = (acats[a.category] || 0) + Number(a.amount || 0));
+    const maxExp = Math.max(1, ...Object.values(acats));
+    document.getElementById('stats-accounts').innerHTML = `<h3>记账统计</h3>
+        <div class="account-summary">
+            <div class="account-summary-card"><div class="num">¥${inc.toFixed(2)}</div><div class="label">收入</div></div>
+            <div class="account-summary-card"><div class="num">¥${exp.toFixed(2)}</div><div class="label">支出</div></div>
+            <div class="account-summary-card"><div class="num">¥${(inc - exp).toFixed(2)}</div><div class="label">结余</div></div>
+        </div>
+        ${Object.keys(acats).length ? '<div style="margin-top:10px">' + Object.entries(acats).sort((a, b) => b[1] - a[1]).map(([name, val]) => `<div class="account-category-row"><span class="name">${name}</span><div class="bar"><div class="bar-fill" style="width:${val / maxExp * 100}%"></div></div><span class="val">¥${val.toFixed(2)}</span></div>`).join('') + '</div>' : '<div class="empty-tip" style="padding:12px 0">暂无支出分类</div>'}
+        <div class="stat-row clickable" onclick="renderStatsDetail('account-all')" style="margin-top:10px"><span class="name">账单明细</span><div class="bar"><div class="bar-fill" style="width:100%;background:var(--primary-light)"></div></div><span class="val">${acc.length} 条 ▸</span></div>`;
+}
 
     // ===== 记账统计（新增）=====
     const acc = (data.accounts || []).filter(a => dateKeyInRange(a.date, bounds.startKey, bounds.endKey));
