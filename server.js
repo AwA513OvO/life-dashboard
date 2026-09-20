@@ -60,7 +60,8 @@ const dataSchema = new mongoose.Schema({
     goals: { type: Array, default: [] },
     countdowns: { type: Array, default: [] },
     diaries: { type: Array, default: [] },
-    vault: { type: Array, default: [] }
+    vault: { type: Array, default: [] },
+    accounts: { type: Array, default: [] }
 });
 
 const resetRequestSchema = new mongoose.Schema({
@@ -287,7 +288,7 @@ app.get('/api/data', auth, async (req, res) => {
         if (!d) d = await Data.create({ userId: req.user._id });
         res.json({
             todos: d.todos, timers: d.timers, goals: d.goals,
-            countdowns: d.countdowns, diaries: d.diaries, vault: d.vault
+            countdowns: d.countdowns, diaries: d.diaries, vault: d.vault, accounts: d.accounts || []
         });
     } catch(e) {
         res.status(500).json({ error: 'Server error' });
@@ -299,7 +300,7 @@ app.post('/api/data', auth, async (req, res) => {
         const MAX_ITEMS = 5000;            // 单个列表最多条数
         const MAX_ITEM_BYTES = 1024 * 1024; // 单条记录序列化后最大约 1MB
         const update = {};
-        for (const key of ['todos', 'timers', 'goals', 'countdowns', 'diaries', 'vault']) {
+        for (const key of ['todos', 'timers', 'goals', 'countdowns', 'diaries', 'vault', 'accounts']) {
             const arr = req.body[key];
             if (arr === undefined) continue;
             if (!Array.isArray(arr) || arr.length > MAX_ITEMS) {
